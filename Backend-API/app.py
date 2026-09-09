@@ -1,10 +1,39 @@
-from database import get_connection
-import os
-import sys
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+import pandas as pd
+import os
+import sys
 
+# ---------------- PATH SETUP ----------------
+current_dir = os.path.dirname(__file__)
+project_root = os.path.abspath(os.path.join(current_dir, ".."))
+
+ml_src = os.path.join(project_root, "ml_model", "src")
+sys.path.append(ml_src)
+
+# ---------------- IMPORT ML ----------------
+from predict import MaritimePredictor
+from feature_engineering import create_derived_features
+
+# ---------------- INIT ----------------
+predictor = MaritimePredictor()
+
+# ---------------- HELPER FUNCTION ----------------
+def prepare_features(input_dict):
+    df = pd.DataFrame([input_dict])
+
+    # Derived features
+    df = create_derived_features(df)
+
+    # Ensure all required features exist
+    for col in predictor.fuel_features:
+        if col not in df.columns:
+            df[col] = 0
+
+    return df
+
+# ---------------- FASTAPI INIT ----------------
 app = FastAPI()
 
 app.add_middleware(
@@ -15,259 +44,145 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ---------------- PATH SETUP ----------------
-current_dir = os.path.dirname(__file__)
-project_root = os.path.abspath(os.path.join(current_dir, ".."))
+# 1. ROUTE API
 
-ml_src = os.path.join(project_root, "ml_model", "src")
-sys.path.append(ml_src)
+class RouteRequest(BaseModel):
+    origin: str
+    destination: str
+    ship_type: str = None
 
-from predict import MaritimePredictor
 
-predictor = MaritimePredictor()
-
-# ---------------- ROUTE API ----------------
 @app.post("/route")
-def get_routes(origin: str, destination: str, ship_type: str = None):
+def get_routes(data: RouteRequest):
     routes = predictor.recommend_routes(
-        origin=origin,
-        destination=destination,
-        ship_type=ship_type,
+        origin=data.origin,
+        destination=data.destination,
+        ship_type=data.ship_type,
         top_k=3
     )
     return {"routes": routes}
 
-@app.get("/ports")
-def get_ports():
-    return predictor.get_ports()
+#  2. HEALTH API
 
-# ---------------- METRICS ----------------
-@app.get("/vessel/metrics")
-def get_vessel_metrics():
-    conn = get_connection()
-    cursor = conn.cursor()
+class HealthInput(BaseModel):
+    rpm: float
+    engineTemp: float
+    vibration: float
+    loadWeight: float
 
-    cursor.execute("""
-        SELECT TOP 10 engineTemp, rpm, fuelRate, speed,
-               vibration, loadWeight, timestamp
-        FROM vessel_metrics
-        ORDER BY timestamp DESC
-    """)
 
-    rows = cursor.fetchall()
-    conn.close()
+@app.post("/prediction/health")
+def get_health(data: HealthInput):
 
-    return [
-        {
-            "engineTemp": r.engineTemp,
-            "rpm": r.rpm,
-            "fuelRate": r.fuelRate,
-            "speed": r.speed,
-            "vibration": r.vibration,
-            "loadWeight": r.loadWeight,
-            "timestamp": r.timestamp
+    try:
+        input_data = {
+            "rpm": data.rpm,
+            "engineTemp": data.engineTemp,
+            "vibration": data.vibration,
+            "loadWeight": data.loadWeight
         }
-        for r in rows
-    ]
 
-# ---------------- FUEL PREDICTION ----------------
-@app.get("/prediction/fuel")
-def fuel_prediction():
-    conn = get_connection()
-    cursor = conn.cursor()
+        health_score = float(predictor.predict_health(input_data))
 
-    cursor.execute("""
-        SELECT TOP 1 rpm, engineTemp, speed, loadWeight
-        FROM vessel_metrics
-        ORDER BY timestamp DESC
-    """)
+        if health_score >= 80:
+            alert = "HEALTHY"
+        elif health_score >= 50:
+            alert = "WARNING"
+        else:
+            alert = "CRITICAL"
 
-    row = cursor.fetchone()
-    conn.close()
-
-    if not row:
-        return {"message": "No data found"}
-
-    data = {
-        "rpm": row.rpm,
-        "engineTemp": row.engineTemp,
-        "speed": row.speed,
-        "loadWeight": row.loadWeight
-    }
-
-    result = predictor.predict_fuel(data)
-
-    return {
-        "input": data,
-        "prediction": result
-    }
-
-# ---------------- SAFETY ----------------
-@app.get("/prediction/safety")
-def safety_prediction():
-    conn = get_connection()
-    cursor = conn.cursor()
-
-    cursor.execute("""
-        SELECT TOP 1 riskScore, riskLevel, possibleCause
-        FROM safety_predictions
-        ORDER BY created_at DESC
-    """)
-
-    r = cursor.fetchone()
-    conn.close()
-
-    if r is None:
-        return {"message": "No data"}
-
-    return {
-        "riskScore": r.riskScore,
-        "riskLevel": r.riskLevel,
-        "possibleCause": r.possibleCause
-    }
-
-# ---------------- HEALTH (YOUR MODEL) ----------------
-@app.get("/prediction/health")
-def get_health():
-    conn = get_connection()
-    cursor = conn.cursor()
-
-    cursor.execute("""
-        SELECT TOP 1 engineTemp, rpm, vibration, loadWeight
-        FROM vessel_metrics
-        ORDER BY timestamp DESC
-    """)
-
-    row = cursor.fetchone()
-    conn.close()
-
-    if not row:
-        return {"message": "No data"}
-
-    data = {
-        "engineTemp": row.engineTemp,
-        "rpm": row.rpm,
-        "vibration": row.vibration,
-        "loadWeight": row.loadWeight
-    }
-
-    health_index = predictor.predict_health(data)
-
-    return {
-        "sensor_data": data,
-        "health_index": float(health_index)
-    }
-
-# ---------------- ALERTS ----------------
-@app.get("/alerts")
-def get_alerts():
-    conn = get_connection()
-    cursor = conn.cursor()
-
-    cursor.execute("""
-        SELECT alert_id, severity, message, time
-        FROM alerts
-        ORDER BY time DESC
-    """)
-
-    rows = cursor.fetchall()
-    conn.close()
-
-    return [
-        {
-            "alertId": r.alert_id,
-            "severity": r.severity,
-            "message": r.message,
-            "time": r.time
+        return {
+            "health_score": health_score,
+            "alert_level": alert
         }
-        for r in rows
-    ]
 
-# ---------------- LOGS ----------------
-@app.get("/logs")
-def get_logs():
-    conn = get_connection()
-    cursor = conn.cursor()
+    except Exception as e:
+        return {"error": str(e)}
 
-    cursor.execute("""
-        SELECT event, level, time
-        FROM system_logs
-        ORDER BY time DESC
-    """)
+# 3. VOYAGE HEALTH
 
-    rows = cursor.fetchall()
-    conn.close()
+class RouteSelection(BaseModel):
+    origin: str
+    destination: str
+    ship_type: str = None
+    route_index: int = 0
 
-    return [
-        {
-            "event": r.event,
-            "level": r.level,
-            "time": r.time
+
+@app.post("/voyage/health")
+def voyage_health(data: RouteSelection):
+
+    try:
+        routes = predictor.recommend_routes(
+            origin=data.origin,
+            destination=data.destination,
+            ship_type=data.ship_type,
+            top_k=3
+        )
+
+        selected_route = routes[data.route_index]
+
+        input_data = {
+            "rpm": selected_route.get("rpm", 80),
+            "engineTemp": selected_route.get("engine_temp", 75),
+            "vibration": selected_route.get("vibration", 2),
+            "loadWeight": selected_route.get("load", 1000)
         }
-        for r in rows
-    ]
 
-# ---------------- STATUS ----------------
-@app.get("/vessel/status")
-def vessel_status():
-    conn = get_connection()
-    cursor = conn.cursor()
+        health_score = float(predictor.predict_health(input_data))
 
-    cursor.execute("""
-        SELECT systemHealth, connectivity
-        FROM system_status
-    """)
+        if health_score >= 80:
+            alert = "HEALTHY"
+        elif health_score >= 50:
+            alert = "WARNING"
+        else:
+            alert = "CRITICAL"
 
-    r = cursor.fetchone()
-    conn.close()
+        return {
+            "selected_route": selected_route,
+            "health_score": health_score,
+            "alert_level": alert
+        }
 
-    if r is None:
-        return {"message": "No status"}
+    except Exception as e:
+        return {"error": str(e)}
 
-    return {
-        "systemHealth": r.systemHealth,
-        "connectivity": r.connectivity
-    }
+# 4. LIFETIME API
 
-# ---------------- SETTINGS ----------------
-class SettingsUpdate(BaseModel):
-    refreshInterval: int
-    aiMode: str
-    apiEndpoint: str
+@app.post("/prediction/lifetime")
+def get_lifetime(data: HealthInput):
+    try:
+        input_data = data.dict()
+        lifetime = predictor.predict_lifetime(input_data)
+        return {"remaining_life_hours": lifetime}
+    except Exception as e:
+        return {"error": str(e)}
 
-@app.post("/settings/update")
-def update_settings(data: SettingsUpdate):
-    conn = get_connection()
-    cursor = conn.cursor()
 
-    cursor.execute("""
-        INSERT INTO settings(refreshInterval, aiMode, apiEndpoint)
-        VALUES (?, ?, ?)
-    """, data.refreshInterval, data.aiMode, data.apiEndpoint)
+#  5. CHATBOT API
 
-    conn.commit()
-    conn.close()
-
-    return {"message": "Settings updated successfully"}
-
-ai_path = os.path.join(project_root, "AI-Agent (RAG + Langchain system) [Akhand]","marine_ai_intelligence_module")
+ai_path = os.path.join(
+    project_root,
+    "AI-Agent (RAG + Langchain system) [Akhand]",
+    "marine_ai_intelligence_module"
+)
 sys.path.append(ai_path)
 
 from src.query_engine import analyze_dataset
+
 class Query(BaseModel):
     question: str
-    
+
+
 @app.post("/ask")
 def ask_question(data: Query):
-
     analysis = analyze_dataset()
     question = data.question.lower()
 
     root_causes = []
-    
+
     if "fuel" in question:
         root_causes.append("Fuel consumption depends on engine load and speed")
-    if "sea" in question or "wave" in question:
+    if "sea" in question:
         root_causes.append("Rough sea increases propulsion demand")
     if "engine" in question:
         root_causes.append("High engine load increases fuel usage")
@@ -276,9 +191,5 @@ def ask_question(data: Query):
         "question": data.question,
         "analysis": analysis,
         "root_causes": root_causes if root_causes else ["General system behavior"],
-        "correlations": [
-            "Fuel consumption ↔ Engine load",
-            "Carbon emission ↔ Fuel consumption"
-        ],
-        "report": "AI-generated maritime insight based on dataset trends"
+        "report": "AI-generated maritime insight"
     }

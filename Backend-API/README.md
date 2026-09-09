@@ -16,4 +16,14 @@ An AI-powered maritime analytics platform that integrates **Machine Learning, Ex
 
 ---
 
-## 🏗️ System Architecture
+## 🚀 How to Run
+
+### 1. Go to backend folder
+
+cd Backend-API (Fast API or Flask) [Shared (integration team)]
+
+ then run server:
+uvicorn app:app --reload --host 0.0.0.0 --port 8000
+
+Opne in web:
+http://localhost:8000/docs

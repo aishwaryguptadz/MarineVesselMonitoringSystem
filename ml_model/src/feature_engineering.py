@@ -7,8 +7,8 @@ import os
 import pandas as pd
 import numpy as np
 
-RAW_PATH = os.path.join(os.path.dirname(__file__), '..', 'data', 'raw', 'new_maritime_dataset.csv')
-FEATURES_DIR = os.path.join(os.path.dirname(__file__), '..', 'data', 'features')
+RAW_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'data', 'raw', 'new_maritime_dataset.csv')
+FEATURES_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'data', 'features')
 
 
 def load_raw_for_features(path: str = RAW_PATH) -> pd.DataFrame:

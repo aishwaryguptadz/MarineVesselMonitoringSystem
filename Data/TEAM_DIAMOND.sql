@@ -1,11 +1,10 @@
 --CREATE DATABASE
-/*
+
 CREATE DATABASE MarineAI;
 GO
 
 USE MarineAI;
 GO
-
 --SHIP DETAILS
 CREATE TABLE vessels(
 	   vessel_id VARCHAR(20) PRIMARY KEY,
@@ -178,7 +177,7 @@ VALUES
 ('IMO9000004', 2, 'HIGH', 'Critical overheating in auxiliary engine'),
 ('IMO9000005', 3, 'MEDIUM', 'Unexpected fuel spike during docking'),
 ('IMO9000006', 1, 'LOW', 'Minor vibration anomaly logged'),
-('IMO9000007', 2, 'HIGH', 'Main engine temperature exceeded 95°C'),
+('IMO9000007', 2, 'HIGH', 'Main engine temperature exceeded 95ï¿½C'),
 ('IMO9000008', 3, 'HIGH', 'Fuel consumption doubled compared to baseline'),
 ('IMO9000009', 1, 'MEDIUM', 'Persistent vibration detected in propeller shaft');
 
@@ -207,4 +206,3 @@ VALUES
 ('IMO9000007', 'Critical', 'Offline'),
 ('IMO9000008', 'Healthy', 'Online'),
 ('IMO9000009', 'Degraded', 'Online');
-*/
