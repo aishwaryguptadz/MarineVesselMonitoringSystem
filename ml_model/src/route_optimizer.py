@@ -9,7 +9,7 @@ import pandas as pd
 import numpy as np
 from math import radians, sin, cos, sqrt, atan2
 
-RAW_PATH = os.path.join(os.path.dirname(__file__), '..', 'data', 'raw', 'new_maritime_dataset.csv')
+RAW_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'data', 'raw', 'new_maritime_dataset.csv')
 
 
 class RouteOptimizer:
