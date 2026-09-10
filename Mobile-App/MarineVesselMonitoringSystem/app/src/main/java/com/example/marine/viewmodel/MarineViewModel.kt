@@ -2,6 +2,7 @@ package com.example.marine.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.marine.data.model.Route
 import com.example.marine.data.remote.RetrofitClient
 import com.example.marine.data.repository.MarineRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -9,6 +10,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlin.collections.copy
 
 class MarineViewModel : ViewModel() {
 
@@ -244,8 +246,13 @@ class MarineViewModel : ViewModel() {
 
             _uiState.update {
                 it.copy(
+                    origin = origin,
+                    destination = destination,
+                    shipType = shipType,
+
                     isLoadingRoutes = true,
                     isLoadingHealth = true,
+
                     routeError = null,
                     healthError = null
                 )
@@ -310,6 +317,37 @@ class MarineViewModel : ViewModel() {
                         )
                     }
                 }
+        }
+    }
+
+    fun selectRoute(route: Route) {
+        _uiState.update {
+            it.copy(
+                selectedRoute = route
+            )
+        }
+    }
+
+
+    fun resetVoyage() {
+        _uiState.update {
+            it.copy(
+                origin = "",
+                destination = "",
+                shipType = "",
+
+                routes = emptyList(),
+                selectedRoute = null,
+
+                healthScore = null,
+                alertLevel = null,
+
+                remainingLifeHours = null,
+
+                routeError = null,
+                healthError = null,
+                lifetimeError = null
+            )
         }
     }
 }

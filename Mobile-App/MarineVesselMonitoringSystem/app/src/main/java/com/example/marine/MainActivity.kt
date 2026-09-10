@@ -102,6 +102,9 @@ fun MarineApp(
                 AppDestinations.MAP -> {
                     MapScreen(
                         uiState = uiState,
+                        onRouteSelected = { route ->
+                            viewModel.selectRoute(route)
+                        },
                         modifier = Modifier.padding(innerPadding)
                     )
                 }
@@ -122,6 +125,12 @@ fun MarineApp(
 
                 AppDestinations.SETTINGS -> {
                     SettingsScreen(
+                        uiState = uiState,
+
+                        onResetVoyage = {
+                            viewModel.resetVoyage()
+                        },
+
                         modifier = Modifier.padding(innerPadding)
                     )
                 }

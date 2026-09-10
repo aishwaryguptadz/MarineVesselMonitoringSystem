@@ -3,6 +3,9 @@ package com.example.marine.viewmodel
 import com.example.marine.data.model.Route
 
 data class MarineUiState(
+    val origin: String = "",
+    val destination: String = "",
+    val shipType: String = "",
 
     val routes: List<Route> = emptyList(),
     val selectedRoute: Route? = null,
