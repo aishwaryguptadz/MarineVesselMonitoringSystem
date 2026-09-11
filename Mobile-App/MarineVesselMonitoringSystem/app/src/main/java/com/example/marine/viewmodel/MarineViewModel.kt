@@ -209,30 +209,39 @@ class MarineViewModel : ViewModel() {
     }
 
     fun askAssistant(question: String) {
+        if (question.isBlank()) return
+
         viewModelScope.launch {
 
-            _uiState.value = _uiState.value.copy(
-                isLoadingAssistant = true,
-                assistantError = null
-            )
+            _uiState.update {
+                it.copy(
+                    isLoadingAssistant = true,
+                    assistantError = null
+                )
+            }
 
             repository.askAssistant(question)
                 .onSuccess { response ->
+                    _uiState.update {
+                        it.copy(
+                            isLoadingAssistant = false,
+                            assistantAnalysis = response.analysis,
+                            assistantReport = response.report,
+                            rootCauses = response.rootCauses,
+                            assistantError = null
+                        )
+                    }
+                }
 
-                    _uiState.value = _uiState.value.copy(
-                        assistantAnswer = response.report,
-                        rootCauses = response.rootCauses,
-                        isLoadingAssistant = false,
-                        assistantError = null
-                    )
+                .onFailure { error ->
 
-                }.onFailure { exception ->
-
-                    _uiState.value = _uiState.value.copy(
-                        isLoadingAssistant = false,
-                        assistantError = exception.message
-                            ?: "Unable to contact AI assistant"
-                    )
+                    _uiState.update {
+                        it.copy(
+                            isLoadingAssistant = false,
+                            assistantError =
+                                error.message ?: "Unable to get AI response."
+                        )
+                    }
                 }
         }
     }
@@ -346,7 +355,12 @@ class MarineViewModel : ViewModel() {
 
                 routeError = null,
                 healthError = null,
-                lifetimeError = null
+                lifetimeError = null,
+
+                assistantAnalysis = null,
+                assistantReport = null,
+                rootCauses = emptyList(),
+                assistantError = null
             )
         }
     }

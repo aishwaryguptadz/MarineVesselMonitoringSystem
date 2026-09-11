@@ -1,5 +1,6 @@
 package com.example.marine.viewmodel
 
+import com.example.marine.data.model.AskAnalysis
 import com.example.marine.data.model.Route
 
 data class MarineUiState(
@@ -22,7 +23,8 @@ data class MarineUiState(
     val isLoadingLifetime: Boolean = false,
     val lifetimeError: String? = null,
 
-    val assistantAnswer: String? = null,
+    val assistantAnalysis: AskAnalysis? = null,
+    val assistantReport: String? = null,
     val rootCauses: List<String> = emptyList(),
     val isLoadingAssistant: Boolean = false,
     val assistantError: String? = null,

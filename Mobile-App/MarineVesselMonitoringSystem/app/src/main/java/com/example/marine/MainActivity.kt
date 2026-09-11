@@ -4,14 +4,17 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Analytics
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -22,12 +25,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.marine.ui.alerts.AlertsScreen
 import com.example.marine.ui.analytics.AnalyticsScreen
+import com.example.marine.ui.assistant.AssistantScreen
 import com.example.marine.ui.home.HomeScreen
 import com.example.marine.ui.map.MapScreen
 import com.example.marine.ui.settings.SettingsScreen
@@ -57,6 +63,10 @@ fun MarineApp(
         mutableStateOf(AppDestinations.HOME)
     }
 
+    var showAssistant by rememberSaveable {
+        mutableStateOf(false)
+    }
+
     NavigationSuiteScaffold(
         navigationSuiteItems = {
             AppDestinations.entries.forEach {
@@ -81,58 +91,77 @@ fun MarineApp(
         Scaffold(
             modifier = Modifier.fillMaxSize()
         ) { innerPadding ->
+            Box(
+                modifier = Modifier.fillMaxSize()
+            ) {
+                when (currentDestination) {
+                    AppDestinations.HOME -> {
+                        HomeScreen(
+                            uiState = uiState,
+                            onAnalyzeVoyage = { origin, destination, shipType ->
+                                viewModel.analyzeVoyage(
+                                    origin = origin,
+                                    destination = destination,
+                                    shipType = shipType
+                                )
+                            },
+                            modifier = Modifier.padding(innerPadding)
+                        )
+                    }
 
-            when (currentDestination) {
+                    AppDestinations.MAP -> {
+                        MapScreen(
+                            uiState = uiState,
+                            onRouteSelected = { route -> viewModel.selectRoute(route) },
+                            modifier = Modifier.padding(innerPadding)
+                        )
+                    }
 
-                AppDestinations.HOME -> {
-                    HomeScreen(
-                        uiState = uiState,
-                        onAnalyzeVoyage = { origin, destination, shipType ->
+                    AppDestinations.ANALYTICS -> {
+                        AnalyticsScreen(
+                            uiState = uiState,
+                            modifier = Modifier.padding(innerPadding)
+                        )
+                    }
 
-                            viewModel.analyzeVoyage(
-                                origin = origin,
-                                destination = destination,
-                                shipType = shipType
-                            )
-                        },
-                        modifier = Modifier.padding(innerPadding)
-                    )
+                    AppDestinations.ALERTS -> {
+                        AlertsScreen(
+                            uiState = uiState,
+                            modifier = Modifier.padding(innerPadding)
+                        )
+                    }
+
+                    AppDestinations.SETTINGS -> {
+                        SettingsScreen(
+                            uiState = uiState,
+                            onResetVoyage = { viewModel.resetVoyage() },
+                            modifier = Modifier.padding(innerPadding)
+                        )
+                    }
                 }
 
-                AppDestinations.MAP -> {
-                    MapScreen(
-                        uiState = uiState,
-                        onRouteSelected = { route ->
-                            viewModel.selectRoute(route)
-                        },
-                        modifier = Modifier.padding(innerPadding)
+                FloatingActionButton(
+                    onClick = { showAssistant = true },
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(16.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.AutoAwesome,
+                        contentDescription = "AI Assistant"
                     )
-                }
 
-                AppDestinations.ANALYTICS -> {
-                    AnalyticsScreen(
-                        uiState = uiState,
-                        modifier = Modifier.padding(innerPadding)
-                    )
-                }
+                    if (showAssistant) {
 
-                AppDestinations.ALERTS -> {
-                    AlertsScreen(
-                        uiState = uiState,
-                        modifier = Modifier.padding(innerPadding)
-                    )
-                }
-
-                AppDestinations.SETTINGS -> {
-                    SettingsScreen(
-                        uiState = uiState,
-
-                        onResetVoyage = {
-                            viewModel.resetVoyage()
-                        },
-
-                        modifier = Modifier.padding(innerPadding)
-                    )
+                        AssistantScreen(
+                            uiState = uiState,
+                            onAskQuestion = viewModel::askAssistant,
+                            onBack = {
+                                showAssistant = false
+                            },
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
                 }
             }
         }
