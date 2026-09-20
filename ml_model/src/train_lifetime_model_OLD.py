@@ -91,7 +91,7 @@ for folder in ("models", "outputs"):
 
 DATA_PATH = os.path.join(os.path.dirname(__file__), '..', 'data', 'sensor_data.csv')
 FALLBACK_DATA_PATH = os.path.join(os.path.dirname(__file__), '..', 'data', 'raw', 'new_maritime_dataset.csv')
-SIMULATION_HOUR = 1500
+SIMULATION_HOUR = 8500
 REQUIRED_SENSOR_COLS = [
     'vibration', 'oil_pressure', 'exhaust_temp',
     'coolant_temp', 'rpm', 'oil_quality',
@@ -99,7 +99,7 @@ REQUIRED_SENSOR_COLS = [
 
 
 def step1_load_data(path=DATA_PATH):
-    """Load and validate sensor data."""
+    """Load and validate sensor data, aligning operational degradation with fleet health."""
     log.info("STEP 1: Loading sensor data...")
     print("\n" + "=" * 60)
     print("STEP 1: LOADING DATA")
@@ -132,12 +132,10 @@ def step1_load_data(path=DATA_PATH):
             print("[ERROR] Failed to read CSV: " + str(e))
             return None
 
-    log.info("Dataset columns: %s" % str(list(df.columns)))
     log.info("Dataset shape: %s" % str(df.shape))
     print("[INFO] Dataset shape: " + str(df.shape))
-    print("[INFO] Columns: " + str(list(df.columns)))
 
-    # Handle part_name column
+    # 1. Handle part_name column
     if 'part_name' not in df.columns:
         if 'ship_type' in df.columns:
             df['part_name'] = df['ship_type'].astype(str)
@@ -147,58 +145,78 @@ def step1_load_data(path=DATA_PATH):
             df['part_name'] = 'default_part'
             print("[WARN] No part_name column, using default")
 
-    # Handle hour column
+    # 2. Establish max lifetime baseline
+    max_ref_life = 10000.0
+    if 'max_lifetime_hours' not in df.columns:
+        df['max_lifetime_hours'] = max_ref_life
+
+    # 3. Derive cumulative operating 'hour' aligned with real dataset health
     if 'hour' not in df.columns:
-        if 'voyage_hours' in df.columns:
+        if 'fleet_avg_health_pct' in df.columns:
+            # Map low health -> late operational lifecycle hours
+            health_series = pd.to_numeric(df['fleet_avg_health_pct'], errors='coerce').clip(0.0, 100.0)
+            df['hour'] = max_ref_life * (1.0 - (health_series / 100.0))
+            log.info("Derived operating hour from fleet_avg_health_pct")
+            print("[INFO] Derived cumulative operating hours from fleet_avg_health_pct")
+        elif 'voyage_hours' in df.columns:
             df['hour'] = pd.to_numeric(df['voyage_hours'], errors='coerce')
             log.warning("Using voyage_hours as hour")
             print("[WARN] Using voyage_hours as hour")
         else:
-            df['hour'] = np.arange(len(df))
+            df['hour'] = np.arange(len(df), dtype=float)
             print("[WARN] No hour column, generating sequence")
 
-    # Handle NaN in hour column
+    # Clean any NaN hours (using modern pandas syntax)
     if df['hour'].isna().any():
-        log.warning("Filling NaN values in hour column")
-        print("[WARN] Filling NaN values in hour column")
-        df['hour'] = df['hour'].fillna(method='ffill').fillna(method='bfill').fillna(0)
+        df['hour'] = df['hour'].ffill().bfill().fillna(0.0)
 
-    # Generate synthetic sensor data
+    # 4. Generate synthetic sensor data correlated with true degradation
     missing_sensors = [c for c in REQUIRED_SENSOR_COLS if c not in df.columns]
     if missing_sensors:
         log.warning("Missing sensor columns: %s" % str(missing_sensors))
-        log.info("Generating synthetic sensor data...")
         print("[WARN] Missing sensors: " + str(missing_sensors))
-        print("[INFO] Generating synthetic sensor data...")
-        
+        print("[INFO] Generating synthetic sensor degradation data...")
+
+        # Base RPM
         if 'rpm' in df.columns:
-            rpm = pd.to_numeric(df['rpm'], errors='coerce').fillna(100)
+            rpm = pd.to_numeric(df['rpm'], errors='coerce').fillna(100.0)
         else:
             rpm = pd.Series(np.random.uniform(80, 130, len(df)))
-        
-        rpm = np.clip(rpm, 50, 150)
+        rpm = np.clip(rpm, 50.0, 150.0)
+
+        # Base health and degradation factors
+        if 'fleet_avg_health_pct' in df.columns:
+            health_ratio = (pd.to_numeric(df['fleet_avg_health_pct'], errors='coerce').fillna(50.0) / 100.0).clip(0.0, 1.0)
+        else:
+            health_ratio = np.clip(1.0 - (df['hour'] / max_ref_life), 0.0, 1.0)
+            
+        degradation = 1.0 - health_ratio
         np.random.seed(42)
-        
+
         for col in missing_sensors:
             if col == 'vibration':
-                df[col] = 2.0 + (rpm / 100.0) * 2.0 + np.random.normal(0, 0.3, len(df))
+                # Vibration climbs as part wears out and with higher engine RPM
+                df[col] = 1.5 + (degradation * 4.5) + ((rpm / 100.0) * 0.5) + np.random.normal(0, 0.2, len(df))
                 df[col] = np.clip(df[col], 0.5, 8.0)
             elif col == 'oil_pressure':
-                df[col] = 2.0 + (rpm / 100.0) * 2.5 + np.random.normal(0, 0.2, len(df))
+                # Oil pressure drops as seals, bearings, and pumps degrade
+                df[col] = 4.8 - (degradation * 3.0) + ((rpm / 100.0) * 0.4) + np.random.normal(0, 0.15, len(df))
                 df[col] = np.clip(df[col], 1.0, 6.0)
             elif col == 'exhaust_temp':
-                df[col] = 350.0 + (rpm / 100.0) * 80.0 + np.random.normal(0, 10, len(df))
+                # Exhaust temperature rises with wear and combustion inefficiency
+                df[col] = 340.0 + (degradation * 90.0) + ((rpm / 100.0) * 50.0) + np.random.normal(0, 8, len(df))
                 df[col] = np.clip(df[col], 300.0, 550.0)
             elif col == 'coolant_temp':
-                df[col] = 75.0 + (rpm / 100.0) * 10.0 + np.random.normal(0, 2, len(df))
+                # Coolant temperature increases under degraded heat transfer
+                df[col] = 72.0 + (degradation * 20.0) + ((rpm / 100.0) * 8.0) + np.random.normal(0, 2, len(df))
                 df[col] = np.clip(df[col], 50.0, 120.0)
             elif col == 'oil_quality':
-                df[col] = 0.95 - (df['hour'] / (df['hour'].max() + 1)) * 0.3 + np.random.normal(0, 0.05, len(df))
-                df[col] = np.clip(df[col], 0.0, 1.0)
-        
-        print("[OK] Synthetic sensor data generated")
+                # Oil quality directly tracks health degradation
+                df[col] = np.clip(health_ratio + np.random.normal(0, 0.04, len(df)), 0.0, 1.0)
 
-    # Remove rows with critical NaN
+        print("[OK] Synthetic degradation sensor data generated")
+
+    # 5. Clean invalid rows
     df_before = len(df)
     df = df.dropna(subset=['part_name', 'hour'], how='any')
     if len(df) < df_before:
@@ -206,21 +224,14 @@ def step1_load_data(path=DATA_PATH):
         print("[WARN] Removed %d rows with missing data" % (df_before - len(df)))
 
     parts_in_data = set(df['part_name'].dropna().unique())
-    if not parts_in_data:
-        log.error("No part_name values found")
-        print("[ERROR] No part_name values found in data")
+    if not parts_in_data or df.empty:
+        log.error("Dataset is empty or has no parts")
+        print("[ERROR] Dataset empty after cleaning")
         return None
 
-    if df.empty:
-        log.error("CSV file is empty")
-        print("[ERROR] Dataset is empty after cleaning")
-        return None
-
-    log.info("Loaded %d rows" % len(df))
-    log.info("Parts found: %s" % str(sorted(parts_in_data)))
     print("[OK] Loaded %d rows" % len(df))
     print("[INFO] Parts found: " + str(sorted(parts_in_data)))
-    
+
     df = df.sort_values(['part_name', 'hour']).reset_index(drop=True)
     return df
 
