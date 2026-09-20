@@ -127,3 +127,17 @@ __MACOSX/
 ml_model/models/
 models/
 outputs/
+# =========================
+# BACKUPS & LOCAL DUMPS
+# =========================
+*_BACKUP/
+*_backup/
+marine-ai-backend_BACKUP/
+
+# =========================
+# NODE / FRONTEND (If backend or frontend uses JS/TS)
+# =========================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
