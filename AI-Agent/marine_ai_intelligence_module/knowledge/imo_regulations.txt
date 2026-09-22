@@ -1,0 +1,490 @@
+# ================================================================
+IMO REGULATIONS REFERENCE
+Maritime AI System — SIH1506
+
+# Last Updated : March 2026
+Compiled for : ml_model / Docs / imo_regulations.txt
+Sources       : IMO.org, MARPOL Annex VI, MEPC Resolutions,
+ICCT 2023, ABS Advisory, DieselNet Standards
+
+# ================================================================
+PART 1 — MARPOL ANNEX VI OVERVIEW
+
+Full Title   : International Convention for the Prevention of
+Pollution from Ships — Annex VI
+“Regulations for the Prevention of Air Pollution
+from Ships”
+
+Adopted      : 27 September 1997 (1997 Protocol to MARPOL)
+In Force     : 19 May 2005
+Applies To   : All ships 400 GT and above engaged in
+international voyages. As of 2023, over 95% of
+world shipping tonnage falls under ratified
+jurisdictions.
+
+Scope        : Limits NOx, SOx, particulate matter (PM),
+ozone-depleting substances (ODS), and greenhouse
+gas (GHG) emissions from ships.
+
+Key Chapters :
+Chapter 1  — General (Reg 1–9): Definitions, surveys,
+certificates, Port State Control
+Chapter 2  — Survey & Certification (Reg 5–10):
+IAPP Certificate requirements
+Chapter 3  — Requirements for Control of Emissions (Reg 12–18):
+NOx, SOx, ODS, VOC, incineration
+Chapter 4  — Energy Efficiency (Reg 19–28):
+EEDI, EEXI, SEEMP, CII
+
+# ================================================================
+PART 2 — NOx EMISSION REGULATIONS (REGULATION 13)
+
+Authority    : MARPOL Annex VI, Regulation 13
+NOx Technical Code 2008 (Resolution 2)
+Applies To   : All marine diesel engines > 130 kW installed
+on ships constructed on or after 1 Jan 2000.
+Excludes emergency engines, lifeboat engines.
+
+-----
+
+## 2.1  NOx TIER LIMITS (g/kWh) — based on rated engine speed n
+
+TIER I   (Ships built 1 Jan 2000 – 31 Dec 2010)
+Resolution: MARPOL Annex VI (1997 Protocol)
+┌─────────────────────────────────────────────────────┐
+│  n < 130 rpm          :  17.0 g/kWh                 │
+│  130 ≤ n < 2000 rpm   :  45·n^(-0.2) g/kWh         │
+│  n ≥ 2000 rpm         :  9.8 g/kWh                  │
+│  Typical slow-speed   : ~18.1 g/kWh (real-world avg)│
+└─────────────────────────────────────────────────────┘
+
+TIER II  (Ships built 1 Jan 2011 onwards — global)
+Resolution: MARPOL Annex VI amendments (2008)
+┌─────────────────────────────────────────────────────┐
+│  n < 130 rpm          :  14.4 g/kWh                 │
+│  130 ≤ n < 2000 rpm   :  44·n^(-0.23) g/kWh        │
+│  n ≥ 2000 rpm         :  7.7 g/kWh                  │
+│  Typical slow-speed   : ~10.5–12.5 g/kWh            │
+└─────────────────────────────────────────────────────┘
+
+TIER III (Ships built 1 Jan 2016 onwards — ECA only)
+Resolution: MARPOL Annex VI amendments (2008)
+Active ECAs: North American, US Caribbean (from 2016)
+Baltic Sea, North Sea (from 2021 — MEPC.286(71))
+┌─────────────────────────────────────────────────────┐
+│  n < 130 rpm          :  3.4 g/kWh                  │
+│  130 ≤ n < 2000 rpm   :  9·n^(-0.2) g/kWh          │
+│  n ≥ 2000 rpm         :  2.0 g/kWh                  │
+│  Typical slow-speed   : ~3.4 g/kWh                  │
+└─────────────────────────────────────────────────────┘
+
+Note: Tier III is ~75–80% reduction vs Tier II.
+Technologies used: SCR (Selective Catalytic Reduction),
+EGR (Exhaust Gas Recirculation), LNG fuel switching.
+
+Real-World Average (ICCT 2023 study — measured emissions):
+Mean NOx : 12.46 g/kWh
+Range    : 1.06 – 37.71 g/kWh
+(Higher at low engine loads — +15–25% below 50% MCR)
+
+-----
+
+## 2.2  NOx COMPLIANCE IN YOUR AI MODEL
+
+nox_tier assignment:
+built_year < 2000  → Tier0 (pre-regulation baseline ~18.1)
+2000–2010          → Tier I  (~12.5 g/kWh typical)
+2011–2015          → Tier II (~10.5 g/kWh typical)
+2016+              → Tier III (~3.4 g/kWh in ECA)
+
+Alert Threshold (use in model):
+nox_g_kwh > 20    → FLAG as non-compliant
+nox_g_kwh > 14    → WARNING (Tier II breach risk)
+nox_g_kwh < 3.5   → ECA-compliant (Tier III)
+
+Dataset column: nox_g_kwh, nox_kg_voyage, nox_tier
+
+# ================================================================
+PART 3 — SOx EMISSION REGULATIONS (REGULATION 14)
+
+Authority    : MARPOL Annex VI, Regulation 14
+IMO 2020 Global Sulphur Cap (in force 1 Jan 2020)
+
+-----
+
+## 3.1  GLOBAL SULPHUR LIMITS (fuel sulphur % m/m)
+
+Period                  Global Limit    ECA Limit
+─────────────────────── ─────────────── ───────────
+Before 1 Jan 2012       4.50%           1.50%
+1 Jan 2012 – 30 Jun 2010 3.50%          1.00%
+1 Jul 2010 – 31 Dec 2014 3.50%          1.00%
+1 Jan 2015 onwards      3.50%           0.10%
+1 Jan 2020 onwards      0.50%  ★ IMO 2020  0.10%
+
+★ IMO 2020 Sulphur Cap: Most impactful environmental
+regulation in shipping history. Required switch from
+HFO (3.5%) to VLSFO (0.5%) or MGO (0.1%).
+
+-----
+
+## 3.2  SOx EMISSION CALCULATION (used in your dataset)
+
+Formula : SOx (kg/tonne fuel) = 20 × Sulphur%
+Source  : EMEP/EEA Air Pollutant Emission Inventory
+Guidebook 2021
+
+Fuel Type    Sulphur%    SOx (kg/t fuel)   Status
+──────────── ─────────── ───────────────── ──────────────
+HFO          2.70%       54.0 kg/t         Non-compliant
+(scrubber req.)
+VLSFO        0.49%       9.8 kg/t          IMO 2020 compliant
+MGO          0.10%       2.0 kg/t          ECA compliant
+LNG          ~0.001%     ~0.02 kg/t        Near zero SOx
+
+Scrubber (EGCS) Allowance:
+Ships fitted with an approved exhaust gas cleaning
+system (scrubber) may continue burning HFO globally.
+Open-loop scrubbers reduce SOx by ~98%.
+As of 2023: ~35% of large vessels fitted with scrubbers.
+
+ECA Zones (SOx 0.10% limit):
+- Baltic Sea (since 2006)
+- North Sea (since 2007)
+- North American Area (since 2012)
+- US Caribbean Sea Area (since 2014)
+
+Dataset columns: fuel_sulphur_pct, sox_kg_per_tonne_fuel,
+sox_kg_voyage, sox_g_kwh, scrubber_fitted
+
+# ================================================================
+PART 4 — CII: CARBON INTENSITY INDICATOR (REGULATION 28)
+
+Authority    : MARPOL Annex VI, Regulation 28
+Resolution MEPC.328(76) — adopted June 2021
+In force: 1 November 2022
+Mandatory from: 1 January 2023
+
+Applies To   : All cargo ships, RoPax, and cruise vessels
+of 5,000 GT and above (international trade).
+Ships 400–4,999 GT: voluntary / encouraged.
+
+-----
+
+## 4.1  CII FORMULA
+
+Attained CII = CO2_emitted (grams)
+─────────────────────────────────────────
+DWT (tonnes) × Distance_sailed (nautical miles)
+
+Unit: gCO2 / (DWT·NM)
+
+CO2 Emission Factors (CF) per fuel type:
+┌──────────── ────────────┐
+│ HFO         3.114 t/t  │
+│ VLSFO       3.151 t/t  │
+│ MGO/MDO     3.206 t/t  │
+│ LNG         2.750 t/t  │
+│ LPG (prop.) 3.000 t/t  │
+│ Methanol    1.375 t/t  │
+└──────────── ────────────┘
+Source: MEPC.364(79), Table 1
+
+Required CII = CII_ref × (1 – Z/100)
+where:
+CII_ref = a × DWT^(–c)   [ship-type specific — see below]
+Z       = annual reduction factor (%)
+
+-----
+
+## 4.2  CII REFERENCE LINE PARAMETERS (a, c values)
+Source: MEPC.353(78) — Table 1
+
+Ship Type           a           c
+─────────────────── ─────────── ───────────
+Bulk Carrier        4,745       0.622
+Tanker              5,247       0.610
+Container Ship      1,984       0.489
+General Cargo       31,948      0.792
+Gas Carrier         8,104       0.639
+LNG Carrier         144,790,000 2.071
+Ro-Ro Cargo         5,739       0.631
+Ro-Ro Passenger     7,540       0.587
+Cruise Passenger    930         0.383
+Refrigerated Cargo  4,600       0.557
+
+-----
+
+## 4.3  ANNUAL REDUCTION FACTORS (Z%) — MEPC.400(83)
+
+Year    Z (%)   Required reduction vs 2019 baseline
+──────  ───────  ─────────────────────────────────────
+2023    5%       5% below 2019 reference line
+2024    7%       7% below 2019 reference line
+2025    9%       9% below 2019 reference line
+2026    11%      11% below 2019 reference line
+2027    TBD      Under review (IMO 2026 revision)
+2030    ~20–30%  Target under 2023 GHG Strategy
+2050    Net zero IMO 2023 GHG Strategy target
+
+Note: Reduction of ~2% per year from 2023–2026.
+Beyond 2026 will be decided after IMO review.
+
+-----
+
+## 4.4  CII RATING BOUNDARIES (A to E)
+Source: MEPC.354(78) — Annex 13
+
+The rating is determined by comparing Attained CII
+to the Required CII using exponential boundary factors:
+
+Rating  Condition                     Meaning
+──────  ─────────────────────────────────────────────────
+A       Attained < exp(d1) × Required  Major superior
+B       exp(d1) ≤ Att < exp(d2) × Req  Minor superior
+C       exp(d2) ≤ Att < exp(d3) × Req  Moderate (compliant)
+D       exp(d3) ≤ Att < exp(d4) × Req  Minor inferior
+E       Attained ≥ exp(d4) × Required  Inferior
+
+Boundary values (d1, d2, d3, d4) are ship-type specific.
+General approximation used in models:
+d1 = -0.25  →  exp(-0.25) ≈ 0.779
+d2 = -0.10  →  exp(-0.10) ≈ 0.905
+d3 = +0.10  →  exp(+0.10) ≈ 1.105
+d4 = +0.25  →  exp(+0.25) ≈ 1.284
+
+CII Ratio = Attained CII / Required CII
+ratio < 0.779  → Rating A
+ratio < 0.905  → Rating B
+ratio < 1.105  → Rating C
+ratio < 1.284  → Rating D
+ratio ≥ 1.284  → Rating E
+
+-----
+
+## 4.5  COMPLIANCE CONSEQUENCES
+
+Rating  Consequence
+──────  ──────────────────────────────────────────────────
+A       No action required. Excellent performance.
+B       No action required. Minor superior.
+C       Compliant. No corrective action needed.
+D       If D for 3 consecutive years → corrective plan req.
+E       Immediate corrective action plan required.
+SEEMP Part III must be updated and verified.
+Risk of port bans / higher port dues.
+
+Corrective Action Plan Requirements (D×3 or E):
+
+- Must be submitted to flag Administration or RO
+- Must be approved before Statement of Compliance issued
+- Includes: CII improvement measures, timeline, targets
+- Reporting deadline: by 20 April of the following year
+
+Reporting Timeline:
+
+- Data collection: Calendar year (Jan–Dec)
+- Submission to flag / RO: by 31 March of following year
+- Verification + Rating assignment: by 30 June
+- Statement of Compliance (SOC) issued: after verification
+
+Dataset columns: cii_rating, cii_attained, cii_required,
+cii_ratio, is_compliant,
+needs_corrective_action, consecutive_d_flag
+
+# ================================================================
+PART 5 — EEXI: ENERGY EFFICIENCY EXISTING SHIP INDEX
+
+Authority    : MARPOL Annex VI, Regulation 23
+Resolution MEPC.328(76) — in force 1 Nov 2022
+Mandatory: 1 January 2023 (first EEXI survey)
+
+Applies To   : Existing ships 400 GT and above (all types).
+One-time certification (not annual like CII).
+
+Purpose      : Sets a minimum technical energy efficiency
+standard for existing ships — equivalent to
+EEDI Phase 2 baseline.
+
+Attained EEXI = CO2 / (Capacity × Speed)  [design-based]
+
+If Attained EEXI > Required EEXI:
+Ship must implement an Engine Power Limitation (EPL)
+or shaft power limitation to reduce power output.
+
+Key difference from CII:
+EEXI = design/technical efficiency (one-time)
+CII  = operational efficiency (annually measured)
+
+# ================================================================
+PART 6 — EEDI: ENERGY EFFICIENCY DESIGN INDEX (NEW SHIPS)
+
+Authority    : MARPOL Annex VI, Regulation 21
+In force: 1 January 2013
+
+Applies To   : New ships 400 GT and above
+(tankers, bulk carriers, gas carriers, general
+cargo, container ships, refrigerated cargo,
+combination carriers, ro-ro, cruise).
+
+Phases:
+Phase 0 (2013–2014) : Reference baseline
+Phase 1 (2015–2019) : 10% reduction from Phase 0
+Phase 2 (2020–2024) : 20% reduction from Phase 0
+Phase 3 (2025+)     : 30% reduction from Phase 0
+
+The CO2 reduction level for Phase 1 was set at 10%
+compared to a reference line from ships built 2000–2010.
+Phase 3 mandates 30% reduction for applicable ship types.
+
+# ================================================================
+PART 7 — GHG STRATEGY & 2050 TARGETS
+
+Authority    : IMO 2023 GHG Strategy
+Resolution MEPC (adopted July 2023, MEPC 80)
+Previous: IMO 2018 Initial GHG Strategy
+
+2023 IMO GHG Strategy Targets:
+┌──────────────────────────────────────────────────────┐
+│ 2030: Carbon intensity reduction ≥ 40% vs 2008      │
+│ 2030: 5–10% of shipping energy from zero/near-zero  │
+│       GHG fuels (target: 10%)                       │
+│ 2040: ~70% GHG reduction vs 2008                    │
+│ 2050: Net zero GHG emissions (or close to)          │
+└──────────────────────────────────────────────────────┘
+
+IMO Net-Zero Framework (draft, approved MEPC 83 — 2025):
+- Regulation of carbon intensity of fuel used by ships
+- Economic pricing mechanisms (carbon levy)
+- Draft expected for adoption: October 2026 MEPC 84
+- Would become new Chapter 5 of MARPOL Annex VI
+
+Alternative Fuels Pathway:
+LNG         → ~20–25% less CO2 vs HFO (well-to-wake)
+Methanol    → ~15% less CO2 (green methanol: ~95% less)
+Ammonia     → Near-zero CO2 (green ammonia)
+Hydrogen    → Zero CO2 (green hydrogen)
+Bio-fuels   → Lifecycle dependent (up to 90% reduction)
+
+# ================================================================
+PART 8 — SEEMP: SHIP ENERGY EFFICIENCY MANAGEMENT PLAN
+
+Authority    : MARPOL Annex VI, Regulation 26
+Resolution MEPC.395(82) — adopted Oct 2024
+(2024 SEEMP Guidelines — latest)
+
+Applies To   : All ships 400 GT and above.
+
+Structure:
+SEEMP Part I  — Energy efficiency management plan
+(fuel-saving measures, best practices)
+SEEMP Part II — Fuel oil consumption data collection plan
+(IMO DCS, measurement methodology)
+SEEMP Part III — CII operational carbon intensity plan
+(For ships ≥ 5,000 GT only)
+Contents required:
+• CII calculation methodology
+• Required CII for next 3 years
+• Implementation plan to achieve CII
+• Self-evaluation and improvement plan
+Renewal: Every 3 years after 2025.
+
+Reporting:
+Annual fuel consumption + CII data → flag / RO
+Deadline: 31 March of following year
+First CII rating issued: 2024 (for 2023 data)
+
+# ================================================================
+PART 9 — EMISSION CONTROL AREAS (ECAs)
+
+ECA Type     : SOx ECA (0.10% sulphur limit since 2015)
+NOx ECA (Tier III from 2016 or 2021)
+
+Active ECAs as of 2024:
+
+┌───────────────────────────── ──────────── ────────────┐
+│ ECA Name                    SOx Active  NOx Active   │
+├───────────────────────────── ──────────── ────────────┤
+│ Baltic Sea                  2006        2021         │
+│ North Sea                   2007        2021         │
+│ North American Area (E+W)   2012        2016         │
+│ US Caribbean Sea            2014        2016         │
+│ Hawaii Area                 2025        —            │
+└───────────────────────────── ──────────── ────────────┘
+
+Note: NOx Tier III applies to ships constructed on or
+after 1 Jan 2016 operating in a NOx ECA.
+
+SOx ECA Rule: Fuel sulphur ≤ 0.10% OR approved scrubber.
+NOx ECA Rule: Engine must be Tier III certified.
+
+# ================================================================
+PART 10 — EXHAUST TEMPERATURE STANDARDS
+
+These are engineering standards (not IMO regulations) used
+for sensor monitoring in your AI lifetime model:
+
+Component              Normal Range    Warning     Critical
+─────────────────────  ─────────────── ─────────── ──────────
+Main Engine Exhaust    300–420°C       420–450°C   > 450°C
+Turbocharger Outlet    320–400°C       400–440°C   > 440°C
+Auxiliary Engine Exh.  300–400°C       400–430°C   > 430°C
+Jacket Cooling Water   70–85°C         85–92°C     > 95°C
+Engine Room Ambient    35–50°C         50–58°C     > 60°C
+
+Sources: MAN B&W Engine Operating Instructions,
+Wärtsilä Maintenance Manual Series
+
+# ================================================================
+PART 11 — PORT STATE CONTROL & ENFORCEMENT
+
+Authority    : Procedures for Port State Control 2023
+Resolution A.1185(33)
+Paris MOU, Tokyo MOU, US Coast Guard
+
+Inspection Trigger Factors:
+
+- CII rating D or E (higher inspection risk)
+- Deficiency reports from previous port calls
+- Age > 15 years (higher risk factor)
+- Flag state performance record
+
+Violation Consequences:
+
+- Detention in port
+- Prohibition from entering certain ports
+- Financial penalties (flag-state dependent)
+- Reputational damage (PSC database published)
+
+For your AI model — ALERT triggers:
+If cii_rating == “E”          → CRITICAL compliance alert
+If consecutive_d_flag == True → WARNING compliance alert
+If nox_g_kwh exceeds tier     → NOx violation alert
+If fuel_sulphur_pct > 0.50%
+AND scrubber_fitted == 0   → SOx violation alert
+If in ECA AND sulphur > 0.10%
+AND scrubber_fitted == 0   → CRITICAL SOx ECA alert
+
+# ================================================================
+PART 12 — QUICK REFERENCE FOR YOUR AI SYSTEM
+
+REGULATION    DATASET COLUMN(S)           THRESHOLD / RULE
+───────────── ─────────────────────────── ──────────────────────────
+Reg 13 NOx    nox_g_kwh, nox_tier         Tier I: ≤18.1, II: ≤10.5,
+III: ≤3.4 g/kWh
+Reg 14 SOx    fuel_sulphur_pct            Global: ≤0.50%
+scrubber_fitted             ECA: ≤0.10% (or scrubber)
+Reg 26 SEEMP  —                           Annual plan required
+Reg 28 CII    cii_attained,               Rating A–E
+cii_required, cii_rating    D×3 or E → corrective plan
+Reg 21 EEDI   —                           New ships only
+Reg 23 EEXI   —                           Existing ships, one-time
+GHG 2023      co2_emitted_tonnes          40% by 2030 vs 2008
+GHG 2050      —                           Net zero target
+
+# ================================================================
+END OF IMO REGULATIONS REFERENCE
+
+# Version : 1.0
+Project : SIH1506 — Ministry of Ports, Shipping & Waterways
+Maritime Vessel Optimization AI System
