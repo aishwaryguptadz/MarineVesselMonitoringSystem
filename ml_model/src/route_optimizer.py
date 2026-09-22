@@ -266,7 +266,8 @@ class RouteOptimizer:
 
     # ── Scoring & ranking ────────────────────────────────────────────────
     def _score_routes(self, routes: list) -> list:
-        """Normalise and score routes: 0.5*fuel + 0.3*risk + 0.2*time."""
+        """Normalise and score routes: 0.45*fuel + 0.45*risk + 0.10*time.
+        Lower score = safer and more fuel-efficient."""
         if not routes:
             return []
 
@@ -285,27 +286,9 @@ class RouteOptimizer:
         n_days = normalise(days)
 
         for i, r in enumerate(routes):
-            r['score'] = round(0.5 * n_fuel[i] + 0.3 * n_risk[i] + 0.2 * n_days[i], 4)
+            r['score'] = round(0.45 * n_fuel[i] + 0.45 * n_risk[i] + 0.10 * n_days[i], 4)
 
         routes.sort(key=lambda x: x['score'])
-
-        # Assign labels
-        best_fuel_idx = int(np.argmin(fuels))
-        best_risk_idx = int(np.argmin(risks))
-        best_time_idx = int(np.argmin(days))
-
-        for i, r in enumerate(routes):
-            labels = []
-            if i == 0:
-                labels.append('🟢 Best Overall')
-            if i == best_fuel_idx:
-                labels.append('⛽ Most Fuel-Efficient')
-            if i == best_risk_idx:
-                labels.append('🛡️ Safest')
-            if i == best_time_idx:
-                labels.append('⚡ Fastest')
-            r['labels'] = labels if labels else ['Route Option']
-
         return routes
 
     # ── Main API ─────────────────────────────────────────────────────────
@@ -357,38 +340,37 @@ class RouteOptimizer:
             print("[RouteOptimizer] No feasible routes found!")
             return []
 
-        # Remove duplicates (same path + same scores)
-        seen = set()
-        unique_routes = []
-        for r in all_routes:
-            key = (r['path_str'], r['total_fuel_t'], r['total_voyage_days'])
-            if key not in seen:
-                seen.add(key)
-                unique_routes.append(r)
+        # Score all routes, then keep only the best per unique path
+        scored = self._score_routes(all_routes)
 
-        # Score and rank
-        ranked = self._score_routes(unique_routes)
-        # ensure at least one multi-hop route is shown
-        multi_hop = [r for r in ranked if r['n_legs'] > 1]
-        direct = [r for r in ranked if r['n_legs'] == 1]
+        # Deduplicate: keep only the best-scored variant for each unique path
+        best_per_path = {}
+        for r in scored:
+            path_key = r['path_str']
+            if path_key not in best_per_path or r['score'] < best_per_path[path_key]['score']:
+                best_per_path[path_key] = r
+        ranked = sorted(best_per_path.values(), key=lambda x: x['score'])
 
+        # Pick top-K with DISTINCT paths
+        seen_paths = set()
         top_routes = []
-
-        # always include best overall
-        if ranked:
-            top_routes.append(ranked[0])
-
-        # include best multi-hop if available
-        if multi_hop:
-            top_routes.append(multi_hop[0])
-
-        # fill remaining slots
         for r in ranked:
-            if r not in top_routes:
+            if r['path_str'] not in seen_paths:
                 top_routes.append(r)
+                seen_paths.add(r['path_str'])
             if len(top_routes) >= top_k:
                 break
 
+        # Assign strategy labels
+        # Route 1 & 2: safest + fuel-efficient (ranked by composite score)
+        # Route 3+: alternative option
+        LABELS = [
+            '🛡️ Safest & ⛽ Fuel-Efficient (Best Overall)',
+            '🛡️ Safe & ⛽ Fuel-Efficient',
+            '🔄 Alternative Route',
+        ]
+        for i, r in enumerate(top_routes):
+            r['labels'] = [LABELS[i] if i < len(LABELS) else '🔄 Alternative Route']
 
         # Print results
         for i, r in enumerate(top_routes):
