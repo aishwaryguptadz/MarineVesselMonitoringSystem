@@ -12,8 +12,8 @@ sys.path.insert(0, os.path.dirname(__file__))
 from route_optimizer import RouteOptimizer
 from feature_engineering import create_derived_features
 
-MODELS_DIR = os.path.join(os.path.dirname(__file__), '..', 'models')
-RAW_PATH = os.path.join(os.path.dirname(__file__), '..', 'data', 'raw', 'new_maritime_dataset.csv')
+MODELS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'models')
+RAW_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'data', 'raw', 'new_maritime_dataset.csv')
 
 
 class MaritimePredictor:
@@ -67,6 +67,18 @@ class MaritimePredictor:
         X = X.replace([np.inf, -np.inf], np.nan).fillna(0)
         return self.eta_model.predict(X)
 
+    def predict_health(self, data: dict) -> float:
+        """Estimate engine health index from live sensor readings."""
+        rpm_ratio = min(data.get('rpm', 80) / 120.0, 1.0)
+        temp_ratio = max(0, 1 - (data.get('engineTemp', 75) - 60) / 60.0)
+        vibration_ratio = max(0, 1 - data.get('vibration', 5) / 20.0)
+        load_ratio = max(0, 1 - data.get('loadWeight', 1000) / 5000.0)
+
+        health = (rpm_ratio * 0.3 + temp_ratio * 0.3 +
+                  vibration_ratio * 0.25 + load_ratio * 0.15) * 100
+
+        return round(float(health), 2)
+
     def recommend_routes(self, origin: str, destination: str,
                          ship_type: str = None, top_k: int = 3) -> list:
         """
@@ -84,3 +96,25 @@ class MaritimePredictor:
     def get_ports(self) -> dict:
         """Return available origin and destination ports."""
         return self.optimizer.get_available_ports()
+    
+    def predict_health(self, data):
+        temp = data["engineTemp"]
+        rpm = data["rpm"]
+        vibration = data["vibration"]
+
+        # simple logic (demo ML)
+        health = 1.0
+        if temp > 90:
+          health -= 0.3
+        if vibration > 3:
+            health -= 0.3
+        if rpm > 2000:
+            health -= 0.2
+        return max(0, health)
+    def predict_lifetime(self, data):
+
+        health = self.predict_health(data)
+        # convert health → remaining life
+        remaining_life = health * 200  # hours
+
+        return remaining_life

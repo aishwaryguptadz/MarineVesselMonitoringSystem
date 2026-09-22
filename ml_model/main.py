@@ -3,10 +3,10 @@ SyntheticAI – Smart Maritime Route Optimization System
 CLI entry point for training models and finding optimal routes.
 
 Usage:
-    # Train models
+    # Train route models
     python main.py train
 
-    # Train models (fast, no GridSearch)
+    # Train route models (fast, no GridSearch)
     python main.py train --fast
 
     # Find best routes
@@ -14,6 +14,12 @@ Usage:
 
     # List available ports
     python main.py ports
+
+    # Run ship part lifetime prediction pipeline
+    python main.py lifetime
+
+    # Run lifetime prediction with custom data path or simulation hour
+    python main.py lifetime --data-path "data/new_maritime_dataset.csv" --simulation-hour 2000
 """
 import argparse
 import sys
@@ -90,16 +96,51 @@ def cmd_ports(args):
     print("=" * 50)
 
 
+def cmd_lifetime(args):
+    """Run the ship part lifetime prediction pipeline."""
+    from train_lifetime_model_OLD import main as run_lifetime
+
+    # Resolve data path — prefer CLI arg, then auto-detect
+    data_path = args.data_path
+    if data_path is None:
+        base = os.path.dirname(__file__)
+        candidates = [
+            os.path.join(base, 'data', 'sensor_data.csv'),
+            os.path.join(base, 'data', 'new_maritime_dataset.csv'),
+            os.path.join(base, '..', 'data', 'new_maritime_dataset.csv'),
+        ]
+        for path in candidates:
+            if os.path.exists(path):
+                data_path = path
+                break
+
+    if data_path is None:
+        print("\n❌  No dataset found. Provide one with --data-path.")
+        print("    Example: python main.py lifetime --data-path data/sensor_data.csv")
+        return
+
+    print(f"\n  Using dataset  : {data_path}")
+    print(f"  Simulation hour: {args.simulation_hour}")
+
+    run_lifetime(
+        data_path=data_path,
+        simulation_hour=args.simulation_hour,
+    )
+
+
 def main():
     parser = argparse.ArgumentParser(
         description='SyntheticAI – Smart Maritime Route Optimization',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  python main.py train                     Train both models
-  python main.py train --fast              Train without GridSearch
+  python main.py train                              Train route models
+  python main.py train --fast                       Train without GridSearch
   python main.py route -o "Jebel Ali" -d "Guangzhou" -s "Tanker"
-  python main.py ports                     List available ports
+  python main.py ports                              List available ports
+  python main.py lifetime                           Run lifetime prediction
+  python main.py lifetime --data-path "data/new_maritime_dataset.csv"
+  python main.py lifetime --simulation-hour 2000
         """
     )
     subparsers = parser.add_subparsers(dest='command', help='Command to run')
@@ -118,6 +159,13 @@ Examples:
     # Ports command
     subparsers.add_parser('ports', help='List available ports')
 
+    # Lifetime prediction command
+    lifetime_parser = subparsers.add_parser('lifetime', help='Run ship part lifetime prediction')
+    lifetime_parser.add_argument('--data-path', type=str, default=None,
+                                 help='Path to sensor data CSV (default: auto-detect)')
+    lifetime_parser.add_argument('--simulation-hour', type=int, default=1500,
+                                 help='Operating hour to simulate predictions at (default: 1500)')
+
     args = parser.parse_args()
 
     if args.command == 'train':
@@ -126,6 +174,8 @@ Examples:
         cmd_route(args)
     elif args.command == 'ports':
         cmd_ports(args)
+    elif args.command == 'lifetime':
+        cmd_lifetime(args)
     else:
         parser.print_help()
 
