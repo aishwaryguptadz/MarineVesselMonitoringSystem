@@ -164,7 +164,7 @@ def get_lifetime(data: HealthInput):
 
 ai_path = os.path.join(
     project_root,
-    "AI-Agent (RAG + Langchain system) [Akhand]",
+    "AI-Agent",
     "marine_ai_intelligence_module"
 )
 sys.path.append(ai_path)
