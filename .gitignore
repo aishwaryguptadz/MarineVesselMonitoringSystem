@@ -14,7 +14,7 @@ desktop.ini
 *.local
 
 # =========================
-# PYTHON (ML / Backend / AI Agent)
+# PYTHON
 # =========================
 __pycache__/
 *.py[cod]
@@ -88,7 +88,7 @@ app/build/
 *.aab
 
 # =========================
-# JAVA / KOTLIN (General)
+# JAVA / KOTLIN
 # =========================
 *.class
 *.jar
