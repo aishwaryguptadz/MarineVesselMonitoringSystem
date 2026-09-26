@@ -32,6 +32,7 @@ venv/
 env/
 ENV/
 .venv/
+marine_env/
 
 # Jupyter
 .ipynb_checkpoints/
@@ -45,6 +46,9 @@ ENV/
 *.tflite
 *.joblib
 *.pkl
+ml_model/models/
+models/
+outputs/
 
 # Dataset Files (Raw)
 data/raw/
@@ -65,8 +69,6 @@ yarn.lock
 
 .next/
 out/
-build/
-dist/
 
 # =========================
 # ANDROID (mobile-app)
@@ -132,9 +134,17 @@ faiss_index/
 __MACOSX/
 
 # =========================
-# TEMP FILES
+# BACKUPS & LOCAL DUMPS
+# =========================
+*_BACKUP/
+*_backup/
+marine-ai-backend_BACKUP/
+
+# =========================
+# TEMP & LOCAL TEST SUITES
 # =========================
 *.tmp
 *.swp
-*.baksrc/run_tests.py 
-AI-Agent/marine_ai_intelligence_module/src/run_tests.py 
+*.bak
+src/run_tests.py
+AI-Agent/marine_ai_intelligence_module/src/run_tests.py
