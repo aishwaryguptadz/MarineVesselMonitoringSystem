@@ -136,4 +136,5 @@ __MACOSX/
 # =========================
 *.tmp
 *.swp
-*.bak
+*.baksrc/run_tests.py 
+AI-Agent/marine_ai_intelligence_module/src/run_tests.py 

@@ -1,79 +1,68 @@
-import pandas as pd
 import numpy as np
-from .config import DATA_PATH
-
-# Load dataset
-df = pd.read_csv(DATA_PATH)
+import pandas as pd
+from .voyage_analyzer import get_current_telemetry
 
 
-def predict_trends():
-    """
-    Predicts simple trends for all numeric dataset columns.
-    Uses a lightweight trend estimation suitable for hackathon demo.
-    """
+def calculate_metric_regression(series: pd.Series):
+    clean = series.dropna().tail(25)
+    n = len(clean)
+    if n < 4:
+        return None
 
-    predictions = {}
+    y = clean.values
+    t = np.arange(n)
+    t_mean, y_mean = np.mean(t), np.mean(y)
 
-    # Select only numeric columns
+    denominator = np.sum((t - t_mean) ** 2)
+    slope = np.sum((t - t_mean) * (y - y_mean)) / denominator if denominator != 0 else 0.0
+    intercept = y_mean - slope * t_mean
+
+    current_val = float(y[-1])
+    raw_forecast = float(slope * n + intercept)
+
+    max_step_delta = abs(current_val) * 0.15 if current_val != 0 else 2.0
+    if abs(raw_forecast - current_val) > max_step_delta:
+        predicted_val = current_val + (np.sign(slope) * max_step_delta)
+    else:
+        predicted_val = raw_forecast
+
+    pct_drift = ((predicted_val - current_val) / abs(current_val) * 100) if current_val != 0 else 0.0
+
+    if pct_drift > 0.5:
+        trend = "increase"
+    elif pct_drift < -0.5:
+        trend = "decrease"
+    else:
+        trend = "stable"
+
+    return {
+        "current_average": round(current_val, 2),
+        "predicted_value": round(predicted_val, 2),
+        "trend": trend,
+        "slope": round(float(slope), 4),
+        "change_pct": round(pct_drift, 1)
+    }
+
+
+def predict_trends(vessel_type: str = None):
+    telemetry = get_current_telemetry(vessel_type)
+    df = telemetry["df"]
     numeric_cols = df.select_dtypes(include=[np.number]).columns
 
+    predictions = {}
     for col in numeric_cols:
-
-        try:
-
-            current_avg = float(df[col].mean())
-
-            # Simple trend estimation (2% increase assumption)
-            predicted_value = current_avg * 1.02
-
-            trend = "increase" if predicted_value > current_avg else "decrease"
-
-            predictions[col] = {
-                "current_average": round(current_avg, 3),
-                "predicted_value": round(predicted_value, 3),
-                "trend": trend
-            }
-
-        except Exception:
-            continue
+        res = calculate_metric_regression(df[col])
+        if res:
+            predictions[col] = res
 
     return predictions
 
 
-def predict_metric(metric):
-    """
-    Returns prediction for a specific metric.
-    """
+def predict_metric(metric: str, vessel_type: str = None):
+    telemetry = get_current_telemetry(vessel_type)
+    df = telemetry["df"]
 
-    predictions = predict_trends()
-
-    if metric in predictions:
-        return predictions[metric]
+    if metric in df.columns and np.issubdtype(df[metric].dtype, np.number):
+        return calculate_metric_regression(df[metric])
 
     return None
-
-
-def predict_ship_performance():
-    """
-    Returns summarized ship performance prediction.
-    """
-
-    predictions = predict_trends()
-
-    summary = {}
-
-    key_metrics = [
-        "fuel_consumption_t_day",
-        "co2_emitted_tonnes",
-        "engine_load_pct",
-        "avg_speed_knots",
-        "wave_height_m",
-        "wind_speed_knots"
-    ]
-
-    for metric in key_metrics:
-
-        if metric in predictions:
-            summary[metric] = predictions[metric]
-
-    return summary

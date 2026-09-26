@@ -1,43 +1,85 @@
 import pandas as pd
-from .config import DATA_PATH
+from .voyage_analyzer import get_current_telemetry
+from .semantic_engine import detect_metric
 
+ALLOWED_PHYSICAL_FACTORS = [
+    "shaft_power_kw", "avg_speed_knots", "rpm", "engine_load_pct",
+    "wave_height_m", "wind_speed_knots", "engine_temp_c", "sea_temp_c"
+]
 
-def analyze_root_cause():
-
+def analyze_root_cause(question: str = "", vessel_type: str = None):
     try:
-        df = pd.read_csv(DATA_PATH)
+        telemetry = get_current_telemetry(vessel_type)
+        df = telemetry["df"]
+        latest = telemetry["latest"]
+        base = telemetry["baseline_slice"]
+        ship_class = telemetry["vessel_type"]
+        vessel_label = f" ({ship_class})" if telemetry["is_specific"] else ""
+        q_lower = question.lower()
 
-        causes = []
+        # Dedicated handler for speed loss under high propulsion
+        if "speed" in q_lower and any(w in q_lower for w in ["dropping", "loss", "despite", "falling"]):
+            wave = float(latest.get("wave_height_m", 1.2))
+            wind = float(latest.get("wind_speed_knots", 10.0))
+            load = float(latest.get("engine_load_pct", 50.0))
 
-        # Engine load cause
-        if "engine_load_pct" in df.columns:
-            if df["engine_load_pct"].mean() > 80:
-                causes.append("Engine running near maximum capacity")
+            reasons = []
+            if wave > 1.8:
+                reasons.append(f"Significant wave height ({wave:.2f}m) creating severe added hull resistance (ΔRaw)")
+            if wind > 18:
+                reasons.append(f"Adverse headwind ({wind:.1f} kts) inducing strong aerodynamic drag against {ship_class.lower()} profile")
+            if not reasons:
+                reasons.append(f"Potential hull fouling or shallow water interaction dissipating effective thrust (Engine load at {load:.1f}%)")
+            return reasons
 
-        # Wave impact
-        if "wave_height_m" in df.columns:
-            if df["wave_height_m"].mean() > 3:
-                causes.append("Severe sea state increasing propulsion demand")
+        target = detect_metric(question) if question else "fuel_consumption_t_day"
+        if target not in df.columns:
+            target = "fuel_consumption_t_day"
 
-        # Wind resistance
-        if "wind_speed_knots" in df.columns:
-            if df["wind_speed_knots"].mean() > 20:
-                causes.append("Strong winds increasing vessel resistance")
+        valid_cols = [c for c in ALLOWED_PHYSICAL_FACTORS if c in df.columns and c != target]
+        corrs = df[valid_cols + [target]].corr(numeric_only=True)[target].drop(target, errors="ignore")
+        strong_influencers = corrs.sort_values(key=abs, ascending=False)
 
-        # Fuel consumption cause
-        if "fuel_consumption_t_day" in df.columns:
-            if df["fuel_consumption_t_day"].mean() > 25:
-                causes.append("High propulsion demand increasing fuel consumption")
+        driving_causes = []
+        mitigating_factors = []
 
-        # Vessel speed cause
-        if "vessel_speed_knots" in df.columns:
-            if df["vessel_speed_knots"].mean() > 28:
-                causes.append("High cruising speed increasing fuel burn")
+        for col, r_val in strong_influencers.items():
+            if col not in latest or col not in base.columns:
+                continue
 
-        if not causes:
-            causes.append("No significant root causes detected")
+            val = float(latest[col])
+            mean = float(base[col].mean())
+            if mean == 0:
+                continue
 
-        return causes
+            delta = ((val - mean) / mean) * 100
+            if abs(delta) >= 5.0:
+                col_name = col.replace("_", " ").title()
+                is_pushing_up = (delta * r_val) > 0
+
+                if is_pushing_up:
+                    driving_causes.append(
+                        f"{col_name} is elevated by {abs(delta):.1f}% ({val:.1f} vs avg {mean:.1f}), which increases {target.replace('_', ' ')} (r = {r_val:+.2f})."
+                    )
+                else:
+                    mitigating_factors.append(
+                        f"{col_name} is lower by {abs(delta):.1f}% ({val:.1f} vs avg {mean:.1f}), which contributes to the reduction in {target.replace('_', ' ')}."
+                    )
+
+        readable_target = target.replace('_', ' ')
+
+        if any(w in q_lower for w in ["increase", "high", "spike", "elevated", "excessive"]):
+            if driving_causes:
+                return driving_causes[:2]
+            return [f"Current telemetry shows {readable_target} is operating below voyage baseline{vessel_label}; no upward drivers detected."]
+
+        if any(w in q_lower for w in ["drop", "decrease", "low", "dropping"]):
+            if mitigating_factors:
+                return mitigating_factors[:2]
+            return [f"{readable_target.capitalize()} is running within or above baseline levels; no downward drivers detected."]
+
+        combined = driving_causes if driving_causes else mitigating_factors
+        return combined[:2] if combined else [f"All physical telemetry parameters{vessel_label} are within baseline tolerances."]
 
     except Exception as e:
-        return {"error": str(e)}
+        return [f"Diagnostics error: {str(e)}"]
