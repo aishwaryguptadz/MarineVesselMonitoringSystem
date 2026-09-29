@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from typing import Optional
 import pandas as pd
 import os
 import sys
@@ -73,27 +74,13 @@ class HealthInput(BaseModel):
 
 @app.post("/prediction/health")
 def get_health(data: HealthInput):
-
+    """Health from explicit sensor readings. Score is 0-100."""
     try:
-        input_data = {
-            "rpm": data.rpm,
-            "engineTemp": data.engineTemp,
-            "vibration": data.vibration,
-            "loadWeight": data.loadWeight
-        }
-
-        health_score = float(predictor.predict_health(input_data))
-
-        if health_score >= 80:
-            alert = "HEALTHY"
-        elif health_score >= 50:
-            alert = "WARNING"
-        else:
-            alert = "CRITICAL"
+        health_score = predictor.predict_health(data.dict())
 
         return {
             "health_score": health_score,
-            "alert_level": alert
+            "alert_level": predictor.alert_level(health_score)
         }
 
     except Exception as e:
@@ -106,11 +93,17 @@ class RouteSelection(BaseModel):
     destination: str
     ship_type: str = None
     route_index: int = 0
+    vessel_id: Optional[str] = None   # optional: score one specific vessel
 
 
 @app.post("/voyage/health")
 def voyage_health(data: RouteSelection):
-
+    """
+    Health for the chosen ship type on the chosen route.
+    The score is computed from that ship type's real sensor data in the
+    dataset (rpm, temperatures, load, turbo efficiency, fouling) and is reduced
+    slightly for risky routes, so different ships/routes give different results.
+    """
     try:
         routes = predictor.recommend_routes(
             origin=data.origin,
@@ -119,28 +112,27 @@ def voyage_health(data: RouteSelection):
             top_k=3
         )
 
+        if not routes:
+            return {"error": f"No routes found from {data.origin} to {data.destination}."}
+        if not 0 <= data.route_index < len(routes):
+            return {"error": f"route_index must be between 0 and {len(routes) - 1}."}
+
         selected_route = routes[data.route_index]
 
-        input_data = {
-            "rpm": selected_route.get("rpm", 80),
-            "engineTemp": selected_route.get("engine_temp", 75),
-            "vibration": selected_route.get("vibration", 2),
-            "loadWeight": selected_route.get("load", 1000)
-        }
-
-        health_score = float(predictor.predict_health(input_data))
-
-        if health_score >= 80:
-            alert = "HEALTHY"
-        elif health_score >= 50:
-            alert = "WARNING"
-        else:
-            alert = "CRITICAL"
+        result = predictor.predict_voyage_health(
+            ship_type=data.ship_type,
+            route=selected_route,
+            vessel_id=data.vessel_id
+        )
 
         return {
             "selected_route": selected_route,
-            "health_score": health_score,
-            "alert_level": alert
+            "health_score": result["health_score"],
+            "alert_level": predictor.alert_level(result["health_score"]),
+            # extra detail (the Android app ignores unknown fields)
+            "engine_health": result["engine_health"],
+            "route_risk_penalty": result["route_risk_penalty"],
+            "sensor_profile": result["sensor_profile"]
         }
 
     except Exception as e:
