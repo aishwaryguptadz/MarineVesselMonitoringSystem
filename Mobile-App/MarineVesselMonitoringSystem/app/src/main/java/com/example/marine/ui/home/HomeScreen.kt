@@ -1,14 +1,20 @@
+
 package com.example.marine.ui.home
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -22,6 +28,12 @@ import androidx.compose.ui.unit.dp
 import com.example.marine.data.model.Route
 import com.example.marine.data.model.VoyageOptions
 import com.example.marine.ui.components.MarineDropdown
+import com.example.marine.ui.components.MetricCard
+import com.example.marine.ui.components.SectionHeader
+import com.example.marine.ui.components.StatusChip
+import com.example.marine.ui.components.StatusType
+import com.example.marine.ui.theme.Fuel
+import com.example.marine.ui.theme.Speed
 import com.example.marine.viewmodel.MarineUiState
 
 @Composable
@@ -34,140 +46,162 @@ fun HomeScreen(
     ) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var origin by rememberSaveable { mutableStateOf("") }
+    var destination by rememberSaveable { mutableStateOf("") }
+    var shipType by rememberSaveable { mutableStateOf("") }
 
-    var origin by rememberSaveable {
-        mutableStateOf("")
-    }
-
-    var destination by rememberSaveable {
-        mutableStateOf("")
-    }
-
-    var shipType by rememberSaveable {
-        mutableStateOf("")
-    }
+    val isLoading = uiState.isLoadingRoutes || uiState.isLoadingHealth
 
     Column(
         modifier = modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
             .padding(20.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(22.dp)
     ) {
-
         DashboardHeader()
 
-        VoyageSelector(
-            origin = origin,
-            destination = destination,
-            shipType = shipType,
-
-            onOriginChanged = {
-                origin = it
-            },
-
-            onDestinationChanged = {
-                destination = it
-            },
-
-            onShipTypeChanged = {
-                shipType = it
-            },
-
-            onAnalyze = {
-                onAnalyzeVoyage(
-                    origin,
-                    destination,
-                    shipType
-                )
-            },
-
-            isLoading =
-                uiState.isLoadingRoutes ||
-                        uiState.isLoadingHealth
+        SectionHeader(
+            title = "Vessel health",
+            subtitle = "Latest available health assessment"
         )
 
-        HealthCard(
+        HealthOverview(
             healthScore = uiState.healthScore,
             alertLevel = uiState.alertLevel,
             isLoading = uiState.isLoadingHealth
         )
 
+        SectionHeader(
+            title = "Plan a voyage",
+            subtitle = "Choose a route to view its estimated performance"
+        )
+
+        VoyageSelector(
+            origin = origin,
+            destination = destination,
+            shipType = shipType,
+            onOriginChanged = { origin = it },
+            onDestinationChanged = { destination = it },
+            onShipTypeChanged = { shipType = it },
+            onAnalyze = {
+                onAnalyzeVoyage(origin, destination, shipType)
+            },
+            isLoading = isLoading
+        )
+
+        SectionHeader(
+            title = "Engine monitoring",
+            subtitle = "Telemetry metrics"
+        )
+
         EngineMetricsCard()
 
-        VoyageCard(
-            route = uiState.selectedRoute
+        SectionHeader(
+            title = "Selected voyage",
+            subtitle = "Summary of the currently selected route"
         )
 
-        RouteSummary(
-            routes = uiState.routes
+        SelectedVoyageCard(route = uiState.selectedRoute)
+
+        SectionHeader(
+            title = "Route recommendations",
+            subtitle = "${uiState.routes.size} route(s) available"
         )
+
+        RouteSummary(routes = uiState.routes)
 
         uiState.healthError?.let {
-            Text(
-                text = "Health Error: $it",
-                color = MaterialTheme.colorScheme.error
-            )
+            ErrorCard(title = "Health data unavailable", message = it)
         }
 
         uiState.routeError?.let {
-            Text(
-                text = "Route Error: $it",
-                color = MaterialTheme.colorScheme.error
-            )
+            ErrorCard(title = "Route analysis failed", message = it)
         }
+
+        Spacer(modifier = Modifier.height(8.dp))
     }
 }
 
 @Composable
 private fun DashboardHeader() {
     Column(
-        verticalArrangement = Arrangement.spacedBy(4.dp)
+        verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
         Text(
             text = "Marine Monitor",
-            style = MaterialTheme.typography.headlineMedium
+            style = MaterialTheme.typography.headlineLarge,
+            color = MaterialTheme.colorScheme.onBackground
         )
 
         Text(
             text = "Vessel Monitoring System",
-            style = MaterialTheme.typography.bodyMedium
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }
 
 @Composable
-private fun HealthCard(
+private fun HealthOverview(
     healthScore: Double?,
     alertLevel: String?,
     isLoading: Boolean
 ) {
+    val status = when (alertLevel.orEmpty().uppercase()) {
+        "HEALTHY", "NORMAL", "LOW" -> StatusType.HEALTHY
+        "WARNING", "MEDIUM", "MODERATE" -> StatusType.WARNING
+        "CRITICAL", "HIGH", "DANGER" -> StatusType.CRITICAL
+        else -> StatusType.OFFLINE
+    }
+
     Card(
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(22.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
-            modifier = Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-
             Text(
-                text = "VESSEL HEALTH",
-                style = MaterialTheme.typography.labelLarge
+                text = "OVERALL HEALTH SCORE",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
             if (isLoading) {
                 CircularProgressIndicator()
             } else {
-                Text(
-                    text = healthScore?.let {
-                        "%.1f".format(it)
-                    } ?: "--",
-                    style = MaterialTheme.typography.displaySmall
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = healthScore?.let { "%.1f".format(it) } ?: "--",
+                        style = MaterialTheme.typography.displayMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+
+                    StatusChip(
+                        label = alertLevel ?: "No data",
+                        status = status
+                    )
+                }
 
                 Text(
-                    text = alertLevel ?: "NO DATA",
-                    style = MaterialTheme.typography.titleMedium
+                    text = if (healthScore != null) {
+                        "Based on the latest health assessment"
+                    } else {
+                        "Health information is not available yet"
+                    },
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
@@ -177,126 +211,162 @@ private fun HealthCard(
 @Composable
 private fun EngineMetricsCard() {
     Card(
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        )
     ) {
         Column(
-            modifier = Modifier.padding(20.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
-                text = "ENGINE MONITORING",
-                style = MaterialTheme.typography.labelLarge
+                text = "Telemetry is not available",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface
             )
 
             Text(
-                text = "Telemetry data will appear here",
-                style = MaterialTheme.typography.bodyLarge
-            )
-
-            Text(
-                text = "Waiting for vessel telemetry",
-                style = MaterialTheme.typography.bodyMedium
+                text = "Engine speed, temperature, vibration and load metrics " +
+                        "will be displayed here when telemetry data is connected.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
 }
 
 @Composable
-private fun VoyageCard(
-    route: Route?
-) {
+private fun SelectedVoyageCard(route: Route?) {
     Card(
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        )
     ) {
-        Column(
-            modifier = Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-
+        if (route == null) {
             Text(
-                text = "ACTIVE VOYAGE",
-                style = MaterialTheme.typography.labelLarge
+                text = "No voyage selected. Analyze a voyage to see its summary here.",
+                modifier = Modifier.padding(18.dp),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-
-            if (route == null) {
-
-                Text("No voyage selected")
-
-            } else {
-
+        } else {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
                 Text(
-                    text = route.pathStr,
-                    style = MaterialTheme.typography.titleMedium
+                    text = route.pathStr.ifBlank { "Selected route" },
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
 
-                Text(
-                    text = "Distance: %.1f nm"
-                        .format(route.totalDistanceNm)
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    MetricCard(
+                        title = "Distance",
+                        value = "%.1f".format(route.totalDistanceNm),
+                        unit = "nm",
+                        modifier = Modifier.weight(1f),
+                        accentColor = Speed
+                    )
 
-                Text(
-                    text = "Voyage: %.1f days"
-                        .format(route.totalVoyageDays)
-                )
+                    MetricCard(
+                        title = "Duration",
+                        value = "%.1f".format(route.totalVoyageDays),
+                        unit = "days",
+                        modifier = Modifier.weight(1f),
+                        accentColor = MaterialTheme.colorScheme.primary
+                    )
+                }
 
-                Text(
-                    text = "Fuel: %.1f tonnes"
-                        .format(route.totalFuelT)
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    MetricCard(
+                        title = "Fuel estimate",
+                        value = "%.1f".format(route.totalFuelT),
+                        unit = "t",
+                        modifier = Modifier.weight(1f),
+                        accentColor = Fuel
+                    )
+
+                    MetricCard(
+                        title = "Average risk",
+                        value = "%.3f".format(route.avgRiskScore),
+                        modifier = Modifier.weight(1f),
+                        accentColor = MaterialTheme.colorScheme.error
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-private fun RouteSummary(
-    routes: List<Route>
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth()
-    ) {
+private fun RouteSummary(routes: List<Route>) {
+    if (routes.isEmpty()) {
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            )
+        ) {
+            Text(
+                text = "No route recommendations yet. Select an origin, " +
+                        "destination and ship type to analyze a voyage.",
+                modifier = Modifier.padding(18.dp),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    } else {
         Column(
-            modifier = Modifier.padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-
-            Text(
-                text = "ROUTE RECOMMENDATIONS",
-                style = MaterialTheme.typography.labelLarge
-            )
-
-            if (routes.isEmpty()) {
-
-                Text("No route recommendations available")
-
-            } else {
-
-                routes.forEachIndexed { index, route ->
-
+            routes.forEachIndexed { index, route ->
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(18.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    )
+                ) {
                     Column(
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-
                         Text(
                             text = "Route ${index + 1}",
-                            style = MaterialTheme.typography.titleSmall
-                        )
-
-                        Text(route.pathStr)
-
-                        Text(
-                            text = "Distance: %.1f nm"
-                                .format(route.totalDistanceNm)
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurface
                         )
 
                         Text(
-                            text = "Fuel: %.1f t"
-                                .format(route.totalFuelT)
+                            text = route.pathStr.ifBlank { "Route details unavailable" },
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
 
                         Text(
-                            text = "Risk: %.3f"
-                                .format(route.avgRiskScore)
+                            text = "${"%.1f".format(route.totalDistanceNm)} nm  •  " +
+                                    "${"%.1f".format(route.totalFuelT)} t fuel  •  " +
+                                    "${"%.3f".format(route.avgRiskScore)} risk",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -317,19 +387,18 @@ private fun VoyageSelector(
     isLoading: Boolean
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        )
     ) {
-
         Column(
-            modifier = Modifier.padding(20.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-
-            Text(
-                text = "SELECT VOYAGE",
-                style = MaterialTheme.typography.labelLarge
-            )
-
             MarineDropdown(
                 label = "Origin",
                 selectedValue = origin,
@@ -365,6 +434,36 @@ private fun VoyageSelector(
                     Text("Analyze Voyage")
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun ErrorCard(
+    title: String,
+    message: String
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.errorContainer
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onErrorContainer
+            )
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onErrorContainer
+            )
         }
     }
 }
