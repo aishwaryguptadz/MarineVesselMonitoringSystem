@@ -1,0 +1,279 @@
+[33mcommit 5da2dd2597b54a918ece3d00a91e9a996090db38[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m
+Author: Ankit-hub2 <samratchauhan618@gmail.com>
+Date:   Thu Apr 16 21:56:54 2026 +0530
+
+    Fix path resolution, add predict_health method, update feature engineering and route optimizer
+
+[33mcommit fcfee692244bb7e6ec0e7f3bde55c2a90cca5e78[m
+Author: Ankit-hub2 <samratchauhan618@gmail.com>
+Date:   Mon Mar 23 15:39:21 2026 +0530
+
+    Errors are removed
+
+[33mcommit 3e0aed167f0f5aebfcad0ee605fbcfcfe9e3ede7[m
+Merge: 2e5efbf 52cb6da
+Author: Ankit-hub2 <samratchauhan618@gmail.com>
+Date:   Sat Mar 21 22:00:02 2026 +0530
+
+    Merge branch 'main' of https://github.com/aishwaryguptadz/MajorProject
+
+[33mcommit 2e5efbfe3b10abd0afdd1efc4396abbbc5800b46[m
+Author: Ankit-hub2 <samratchauhan618@gmail.com>
+Date:   Sat Mar 21 21:56:44 2026 +0530
+
+    Add LSTM model, fix model.py issues, update API with RF+LSTM combined predictions
+
+[33mcommit 52cb6da05c8f549309357ac5dfbcddde756ccaf8[m
+Author: Anush-Singh <179973493+Anush-Singh@users.noreply.github.com>
+Date:   Wed Mar 18 12:23:10 2026 +0530
+
+    Update README.md
+
+[33mcommit d3e7d4d8971ccacc405d2e801e614520ad29f933[m
+Merge: 10e3cb0 f06c4fc
+Author: Akhand Pratap Singh <akhandp765@gmail.com>
+Date:   Wed Mar 18 12:14:04 2026 +0530
+
+    Merge pull request #7 from aishwaryguptadz/akhand-ai-agent
+    
+    Akhand ai agent
+
+[33mcommit 10e3cb0cd90942460b6950862ca88a772e9c1f8b[m
+Merge: ea75f53 8aeafc2
+Author: Akhand Pratap Singh <akhandp765@gmail.com>
+Date:   Wed Mar 18 12:07:35 2026 +0530
+
+    Merge pull request #6 from aishwaryguptadz/anush-backend-api
+    
+    Anush backend api
+
+[33mcommit ea75f533da902752f8527586127d9201066a95d2[m
+Merge: d3c18f1 71d2ef6
+Author: Aishwary Kumar <aishaakash182@gmail.com>
+Date:   Wed Mar 18 11:55:04 2026 +0530
+
+    Merge pull request #5 from aishwaryguptadz/develop
+    
+    Develop
+
+[33mcommit 71d2ef6997e16ed5cc7a28b7f57bbf63f42b8669[m
+Author: aishwaryguptadz <aishaakash182@gmail.com>
+Date:   Wed Mar 18 11:42:09 2026 +0530
+
+    .
+
+[33mcommit aeef5448c92453f52754508b587336dd71cd055b[m
+Author: aishwaryguptadz <aishaakash182@gmail.com>
+Date:   Wed Mar 18 11:37:04 2026 +0530
+
+    TEAM_DIAMOND recovered
+
+[33mcommit 8aeafc2f3f60db3eac86d5b8430fdea9b23d24ee[m
+Author: Anush-Singh <179973493+Anush-Singh@users.noreply.github.com>
+Date:   Wed Mar 18 00:15:23 2026 +0530
+
+    Create requirements.txt
+
+[33mcommit 435831f531488c67d3f2fbd8f324a5a3445cbc47[m
+Author: Anush-Singh <179973493+Anush-Singh@users.noreply.github.com>
+Date:   Wed Mar 18 00:13:12 2026 +0530
+
+    Create README.md
+
+[33mcommit d5f54c50aeea258132b8b22d478b35fa26191e79[m
+Author: Anush-Singh <179973493+Anush-Singh@users.noreply.github.com>
+Date:   Tue Mar 17 23:55:18 2026 +0530
+
+    Delete Data (Datasets or links)/database.py
+
+[33mcommit 785da230ca6b79ab93a3422dec69ec10c54c7ad2[m
+Author: Anush-Singh <179973493+Anush-Singh@users.noreply.github.com>
+Date:   Tue Mar 17 23:54:47 2026 +0530
+
+    Delete Data (Datasets or links)/app.py
+
+[33mcommit 956f591c77d933781859a43fb5bada7937051b41[m
+Author: Anush-Singh <179973493+Anush-Singh@users.noreply.github.com>
+Date:   Tue Mar 17 23:54:24 2026 +0530
+
+    Update app.py
+
+[33mcommit 054af86116e97908413fe6e41856dd96ce39a887[m
+Author: Anush-Singh <179973493+Anush-Singh@users.noreply.github.com>
+Date:   Tue Mar 17 23:52:13 2026 +0530
+
+    Create database.py
+
+[33mcommit 2311f9dcda599b885c55bce07a761c4ab14fbdcc[m
+Author: Anush-Singh <179973493+Anush-Singh@users.noreply.github.com>
+Date:   Tue Mar 17 23:51:37 2026 +0530
+
+    Create app.py
+    
+    "Added backend APIs, ML integration and AI ask endpoint"
+
+[33mcommit f06c4fc2add279098f6531f5ad7013e31cf5cef4[m
+Author: Akhand Pratap Singh <akhandp765@gmail.com>
+Date:   Sun Mar 15 11:00:04 2026 +0530
+
+    Final chatbot model
+
+[33mcommit 6d82a8b6845dfee0448a80a5e96e2b3d98b61c45[m
+Merge: eaf1ff3 5f612f0
+Author: Aishwary Kumar <aishaakash182@gmail.com>
+Date:   Sat Mar 14 20:07:01 2026 +0530
+
+    Merge pull request #2 from aishwaryguptadz/anush-backend-api
+    
+    Merge backend APIs for vessel monitoring and predictions
+
+[33mcommit eaf1ff356e5c3e2872200c7e373e732fadb9529c[m
+Author: Aishwary Kumar <aishaakash182@gmail.com>
+Date:   Sat Mar 14 20:03:58 2026 +0530
+
+    Add backend setup instructions
+
+[33mcommit fbab02e5ecd5881c76efc9a5948df9ca229e9121[m
+Author: Akhand Pratap Singh <akhandp765@gmail.com>
+Date:   Sat Mar 14 09:06:37 2026 +0530
+
+    Updated README with Marine AI Copilot architecture and sample output
+
+[33mcommit 26e3864357499e86fb0b5c8069bd3c18e240bcdf[m
+Author: Ankit <samratchauhan618@gmail.com>
+Date:   Sat Mar 14 00:53:32 2026 +0900
+
+    ml_model: Add ship lifetime prediction system
+    
+    - Implemented ShipPartLifetimePredictor for 5 ship types
+    - Created visualizer module for dashboards and sensor charts
+    - Added training pipeline with comprehensive error handling
+    - Achieves 99%+ accuracy on all ship part predictions
+    - Generates health scores, RUL estimates, and maintenance reports
+    - Updated .gitignore to exclude model files and outputs
+
+[33mcommit c9d2d3d506519aa8890d4430cefb103678aad5fa[m
+Author: Akhand Pratap Singh <akhandp765@gmail.com>
+Date:   Fri Mar 13 19:04:05 2026 +0530
+
+    Added vessel intelligence AI module
+
+[33mcommit 4677823d8c7f91ab8dceb19047fd6702f41f5a2e[m
+Merge: f4ab12e e998628
+Author: Akansha_Ojha <akanshaojha96956@gmail.com>
+Date:   Fri Mar 13 18:46:50 2026 +0530
+
+    Merge pull request #3 from aishwaryguptadz/akansha-ml
+    
+    Akansha ml
+
+[33mcommit e998628dee0dc30b2a0f10d7a74513266b8bf105[m
+Author: Akansha-Ojha <akanshaojha96956@gmail.com>
+Date:   Fri Mar 13 18:38:41 2026 +0530
+
+    Add compressed ETA model
+
+[33mcommit 4569a3c20146428f165bc9c2b27884d29a83589f[m
+Author: Akansha-Ojha <akanshaojha96956@gmail.com>
+Date:   Fri Mar 13 16:54:37 2026 +0530
+
+    Add compression script and update requirements
+
+[33mcommit f4ab12eab3c08dd276908d9b854b448a767ca5ce[m
+Author: Anush-Singh <179973493+Anush-Singh@users.noreply.github.com>
+Date:   Fri Mar 13 16:45:11 2026 +0530
+
+    Create README.md
+
+[33mcommit 09451d2b7d7c3b081d89f2d72f747c711693febe[m
+Author: Anush Singh <2k23.csai2310942@gmail.com>
+Date:   Fri Mar 13 16:43:46 2026 +0530
+
+    Added MarineAI dataset and database schema (TEAM_DIAMOND.sql)
+
+[33mcommit 6362563f5d0b6274f58ef4a80dcb3014e22768ee[m
+Author: Akansha-Ojha <akanshaojha96956@gmail.com>
+Date:   Fri Mar 13 16:39:06 2026 +0530
+
+    Add ML models using Git LFS
+
+[33mcommit 5f612f0494e3a8d7f1e70408bd84a48e9e0c0e7f[m
+Author: Anush Singh <2k23.csai2310942@gmail.com>
+Date:   Fri Mar 13 16:30:59 2026 +0530
+
+    Added backend APIs for vessel monitoring and predictions
+
+[33mcommit f725fad08216f735298037c9094e81044bb3cbbb[m
+Author: Akansha-Ojha <akanshaojha96956@gmail.com>
+Date:   Fri Mar 13 16:20:22 2026 +0530
+
+    Add compressed ML models and update route optimizer
+
+[33mcommit 8c8f3a810e56c8a6f0b109ebcc343922a7760d78[m
+Merge: d3c18f1 7feb1fd
+Author: Anush-Singh <179973493+Anush-Singh@users.noreply.github.com>
+Date:   Thu Mar 12 13:06:03 2026 +0530
+
+    Merge pull request #1 from aishwaryguptadz/akansha-ml
+    
+    Akansha ml
+
+[33mcommit 7feb1fd384e8cd1b273df15377cccdc9b491cab9[m[33m ([m[1;31morigin/akansha-ml[m[33m)[m
+Author: Akansha-Ojha <akanshaojha96956@gmail.com>
+Date:   Thu Mar 12 12:14:19 2026 +0530
+
+    Added .gitkeep
+
+[33mcommit 28bfce3ee24a2c2940b40550aa1a91d9febde224[m
+Author: Akansha-Ojha <akanshaojha96956@gmail.com>
+Date:   Thu Mar 12 12:09:32 2026 +0530
+
+    Replaced old ML-Core folder with new ml_model structure
+
+[33mcommit 599a1d1c0475442b7935952c2e20ddbf13bb2b0f[m
+Author: Akhand Pratap Singh <akhandp765@gmail.com>
+Date:   Wed Mar 11 20:08:54 2026 +0530
+
+    Fixed module imports and added intelligence module
+
+[33mcommit 9368b799b3360e06b4f649ad90fccb7cd041e9ef[m
+Author: Akhand Pratap Singh <akhandp765@gmail.com>
+Date:   Wed Mar 11 20:00:59 2026 +0530
+
+    Added Marine AI Intelligence Module with carbon emission prediction and semantic query engine
+
+[33mcommit d3c18f18c5d4b85c8d1ebe5a9aace5eaaf2f88f2[m
+Author: aishwaryguptadz <aishaakash182@gmail.com>
+Date:   Fri Feb 20 14:32:32 2026 +0530
+
+    First initialization of Updated Project
+
+[33mcommit bd7eadad47b28e6915fce30d46e4095405a8b660[m
+Author: aishwaryguptadz <aishaakash182@gmail.com>
+Date:   Fri Feb 20 14:22:47 2026 +0530
+
+    Updated project
+
+[33mcommit cb0f3da2ab334b8b630539a0dfd874ec46ba32c8[m
+Author: aishwaryguptadz <aishaakash182@gmail.com>
+Date:   Mon Feb 16 16:23:49 2026 +0530
+
+    First Commit
+
+[33mcommit aaeb12223dabe4fb26b1b5e2434a69ec2b0f2ae9[m
+Author: aishwaryguptadz <aishaakash182@gmail.com>
+Date:   Fri Feb 13 21:13:52 2026 +0530
+
+    Data Folder
+
+[33mcommit d4ba17161401d7c23124b5c5936e162697a59851[m
+Author: aishwaryguptadz <aishaakash182@gmail.com>
+Date:   Fri Feb 13 16:36:02 2026 +0530
+
+    Added project folders
+
+[33mcommit 934f41a1641c2c1903044fcad47ec21ee227b68d[m
+Author: aishwaryguptadz <aishaakash182@gmail.com>
+Date:   Fri Feb 13 16:22:35 2026 +0530
+
+    Initial project structure
