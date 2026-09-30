@@ -51,6 +51,7 @@ class RouteRequest(BaseModel):
     origin: str
     destination: str
     ship_type: str = None
+    shipType: Optional[str] = None      # the Android app sends camelCase
 
 
 @app.post("/route")
@@ -58,7 +59,7 @@ def get_routes(data: RouteRequest):
     routes = predictor.recommend_routes(
         origin=data.origin,
         destination=data.destination,
-        ship_type=data.ship_type,
+        ship_type=data.ship_type or data.shipType,
         top_k=3
     )
     return {"routes": routes}
@@ -94,6 +95,8 @@ class RouteSelection(BaseModel):
     ship_type: str = None
     route_index: int = 0
     vessel_id: Optional[str] = None   # optional: score one specific vessel
+    shipType: Optional[str] = None    # the Android app sends camelCase
+    routeIndex: Optional[int] = None
 
 
 @app.post("/voyage/health")
@@ -105,22 +108,26 @@ def voyage_health(data: RouteSelection):
     slightly for risky routes, so different ships/routes give different results.
     """
     try:
+        # accept both snake_case (docs/tests) and camelCase (Android app)
+        ship_type = data.ship_type or data.shipType
+        route_index = data.routeIndex if data.routeIndex is not None else data.route_index
+
         routes = predictor.recommend_routes(
             origin=data.origin,
             destination=data.destination,
-            ship_type=data.ship_type,
+            ship_type=ship_type,
             top_k=3
         )
 
         if not routes:
             return {"error": f"No routes found from {data.origin} to {data.destination}."}
-        if not 0 <= data.route_index < len(routes):
+        if not 0 <= route_index < len(routes):
             return {"error": f"route_index must be between 0 and {len(routes) - 1}."}
 
-        selected_route = routes[data.route_index]
+        selected_route = routes[route_index]
 
         result = predictor.predict_voyage_health(
-            ship_type=data.ship_type,
+            ship_type=ship_type,
             route=selected_route,
             vessel_id=data.vessel_id
         )
