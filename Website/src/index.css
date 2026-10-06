@@ -1,39 +1,10 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-html,
-body,
-#root {
-  min-height: 100%;
+html, body, #root {
   margin: 0;
+  width: 100%;
+  min-height: 100%;
+  height: 100%;
 }
 
 body {
-  font-family: 'Inter', sans-serif;
-  background-color: #040d1a;
-  color: #f1f5f9;
-  overflow-x: hidden;
-}
-
-.font-mono {
-  font-family: 'JetBrains Mono', monospace;
-}
-
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background: #071629;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #1e293b;
-  border-radius: 9999px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #00f2fe;
+  overflow: hidden;
 }
