@@ -24,6 +24,7 @@ data class MarineUiState(
     val lifetimeError: String? = null,
 
     val assistantAnalysis: AskAnalysis? = null,
+    val assistantQuestion: String? = null,
     val assistantReport: String? = null,
     val rootCauses: List<String> = emptyList(),
     val isLoadingAssistant: Boolean = false,

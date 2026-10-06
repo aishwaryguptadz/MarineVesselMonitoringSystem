@@ -67,38 +67,74 @@ fun MarineApp(
         mutableStateOf(false)
     }
 
+    // ---------------------------------------------------------
+    // AI ASSISTANT
+    // ---------------------------------------------------------
+
+    if (showAssistant) {
+
+        AssistantScreen(
+            uiState = uiState,
+            onAskQuestion = viewModel::askAssistant,
+            onBack = {
+                showAssistant = false
+            },
+            modifier = Modifier.fillMaxSize()
+        )
+
+        return
+    }
+
+    // ---------------------------------------------------------
+    // MAIN APPLICATION
+    // ---------------------------------------------------------
+
     NavigationSuiteScaffold(
         navigationSuiteItems = {
-            AppDestinations.entries.forEach {
+            AppDestinations.entries.forEach { destination ->
+
                 item(
                     icon = {
                         Icon(
-                            imageVector = it.icon,
-                            contentDescription = it.label
+                            imageVector = destination.icon,
+                            contentDescription = destination.label
                         )
                     },
                     label = {
-                        Text(it.label)
+                        Text(destination.label)
                     },
-                    selected = it == currentDestination,
+                    selected = destination == currentDestination,
                     onClick = {
-                        currentDestination = it
+                        currentDestination = destination
                     }
                 )
             }
         }
     ) {
+
         Scaffold(
             modifier = Modifier.fillMaxSize()
         ) { innerPadding ->
+
             Box(
                 modifier = Modifier.fillMaxSize()
             ) {
+
+                // -------------------------------------------------
+                // MAIN SCREEN CONTENT
+                // -------------------------------------------------
+
                 when (currentDestination) {
+
                     AppDestinations.HOME -> {
+
                         HomeScreen(
                             uiState = uiState,
-                            onAnalyzeVoyage = { origin, destination, shipType ->
+                            onAnalyzeVoyage = {
+                                    origin,
+                                    destination,
+                                    shipType ->
+
                                 viewModel.analyzeVoyage(
                                     origin = origin,
                                     destination = destination,
@@ -110,14 +146,18 @@ fun MarineApp(
                     }
 
                     AppDestinations.MAP -> {
+
                         MapScreen(
                             uiState = uiState,
-                            onRouteSelected = { route -> viewModel.selectRoute(route) },
+                            onRouteSelected = { route ->
+                                viewModel.selectRoute(route)
+                            },
                             modifier = Modifier.padding(innerPadding)
                         )
                     }
 
                     AppDestinations.ANALYTICS -> {
+
                         AnalyticsScreen(
                             uiState = uiState,
                             modifier = Modifier.padding(innerPadding)
@@ -125,6 +165,7 @@ fun MarineApp(
                     }
 
                     AppDestinations.ALERTS -> {
+
                         AlertsScreen(
                             uiState = uiState,
                             modifier = Modifier.padding(innerPadding)
@@ -132,36 +173,34 @@ fun MarineApp(
                     }
 
                     AppDestinations.SETTINGS -> {
+
                         SettingsScreen(
                             uiState = uiState,
-                            onResetVoyage = { viewModel.resetVoyage() },
+                            onResetVoyage = {
+                                viewModel.resetVoyage()
+                            },
                             modifier = Modifier.padding(innerPadding)
                         )
                     }
                 }
 
+                // -------------------------------------------------
+                // AI ASSISTANT FAB
+                // -------------------------------------------------
+
                 FloatingActionButton(
-                    onClick = { showAssistant = true },
+                    onClick = {
+                        showAssistant = true
+                    },
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
                         .padding(16.dp)
                 ) {
+
                     Icon(
                         imageVector = Icons.Default.AutoAwesome,
                         contentDescription = "AI Assistant"
                     )
-
-                    if (showAssistant) {
-
-                        AssistantScreen(
-                            uiState = uiState,
-                            onAskQuestion = viewModel::askAssistant,
-                            onBack = {
-                                showAssistant = false
-                            },
-                            modifier = Modifier.fillMaxSize()
-                        )
-                    }
                 }
             }
         }
