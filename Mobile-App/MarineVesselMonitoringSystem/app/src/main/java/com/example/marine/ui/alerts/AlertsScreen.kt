@@ -6,12 +6,16 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.example.marine.viewmodel.MarineUiState
 
@@ -23,6 +27,7 @@ fun AlertsScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(horizontal = 20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
@@ -80,47 +85,82 @@ private fun CurrentStatusCard(
     healthScore: Double?,
     alertLevel: String?
 ) {
+    val status = alertLevel
+        ?.uppercase()
+        ?.takeIf { it.isNotBlank() } ?: "NO DATA"
+
+    val statusColor = when (status) {
+        "HEALTHY" -> Color(0xFF2E7D32)
+        "WARNING" -> Color(0xFFED9B22)
+        "CRITICAL" -> MaterialTheme.colorScheme.error
+        else -> MaterialTheme.colorScheme.outline
+    }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp)
+        shape = RoundedCornerShape(20.dp)
     ) {
         Column(
             modifier = Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-
             Text(
                 text = "CURRENT STATUS",
-                style = MaterialTheme.typography.labelLarge
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(50),
+                        color = statusColor.copy(alpha = 0.12f)
+                    ) {
+                        Text(
+                            text = status,
+                            modifier = Modifier.padding(
+                                horizontal = 12.dp,
+                                vertical = 7.dp
+                            ),
+                            color = statusColor,
+                            style = MaterialTheme.typography.labelLarge
+                        )
+                    }
 
-                Text(
-                    text = alertLevel ?: "NO DATA",
-                    style = MaterialTheme.typography.headlineSmall
-                )
+                    Text(
+                        text = StatusDescription(status),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
 
-                Text(
-                    text = healthScore?.let {
-                        "%.1f".format(it)
-                    } ?: "--",
-                    style = MaterialTheme.typography.headlineSmall
-                )
+                Column(
+                    horizontalAlignment = androidx.compose.ui.Alignment.End,
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        text = healthScore?.let {
+                            "%.1f".format(it)
+                        } ?: "--",
+                        style = MaterialTheme.typography.headlineMedium
+                    )
+                    Text(
+                        text = "Health score",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
-
-            Text(
-                text = statusDescription(alertLevel),
-                style = MaterialTheme.typography.bodyMedium
-            )
         }
     }
 }
 
-private fun statusDescription(
+private fun StatusDescription(
     alertLevel: String?
 ): String {
     return when (alertLevel) {
@@ -172,7 +212,7 @@ private fun HealthAssessmentCard(
             )
 
             Text(
-                text = assessmentMessage(
+                text = AssessmentMessage(
                     healthScore,
                     alertLevel
                 ),
@@ -182,7 +222,7 @@ private fun HealthAssessmentCard(
     }
 }
 
-private fun assessmentMessage(
+private fun AssessmentMessage(
     healthScore: Double?,
     alertLevel: String?
 ): String {
@@ -211,32 +251,39 @@ private fun assessmentMessage(
 private fun MonitoringStatusCard() {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp)
+        shape = RoundedCornerShape(20.dp)
     ) {
-
         Column(
             modifier = Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-
             Text(
                 text = "MONITORING STATUS",
-                style = MaterialTheme.typography.labelLarge
+                style = MaterialTheme.typography.titleMedium
+            )
+
+            Text(
+                text = "Availability of monitoring components",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
             MonitoringRow(
                 label = "Route monitoring",
-                status = "Active"
+                status = "Active",
+                isActive = true
             )
 
             MonitoringRow(
                 label = "Health monitoring",
-                status = "Active"
+                status = "Active",
+                isActive = true
             )
 
             MonitoringRow(
                 label = "Engine telemetry",
-                status = "Pending"
+                status = "Pending",
+                isActive = false
             )
         }
     }
@@ -245,22 +292,39 @@ private fun MonitoringStatusCard() {
 @Composable
 private fun MonitoringRow(
     label: String,
-    status: String
+    status: String,
+    isActive: Boolean
 ) {
+    val statusColor = if (isActive) {
+        Color(0xFF2E7D32)
+    } else {
+        MaterialTheme.colorScheme.outline
+    }
+
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
     ) {
-
         Text(
             text = label,
             style = MaterialTheme.typography.bodyMedium
         )
 
-        Text(
-            text = status,
-            style = MaterialTheme.typography.labelLarge
-        )
+        Surface(
+            shape = RoundedCornerShape(50),
+            color = statusColor.copy(alpha = 0.10f)
+        ) {
+            Text(
+                text = status,
+                modifier = Modifier.padding(
+                    horizontal = 10.dp,
+                    vertical = 5.dp
+                ),
+                color = statusColor,
+                style = MaterialTheme.typography.labelMedium
+            )
+        }
     }
 }
 
